@@ -57,8 +57,8 @@ export type Website = { school: { slug: string; name: string }; snapshot: SiteSn
 /** What the marketing site and the school website ask core: binding CORE, entrypoint SiteApi. */
 export interface SiteApi {
   catalogue(): Promise<Catalogue>;
-  /** "invalid" when a required field is missing; "thanks" when stored, or when a bot is quietly ignored. Throws AppError 429 past a limit. */
-  requestDemo(d: DemoRequest): Promise<"thanks" | "invalid">;
+  /** "thanks" when stored; "ignored" when a bot filled the hidden field; "invalid" when a required field is missing. Throws AppError 429 past a limit. */
+  requestDemo(d: DemoRequest): Promise<"thanks" | "ignored" | "invalid">;
   /** null when no school is served at the host, or it is suspended. */
   website(host: string): Promise<Website | null>;
   /** The school's logo, or a gallery photo its published snapshot names; null when there is none. */
