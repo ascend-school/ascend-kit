@@ -68,6 +68,8 @@ export interface PortalSession {
   readonly attendance: AttendanceApi;
   readonly timetable: TimetableApi;
   readonly notices: NoticesApi;
+  readonly exams: ExamsApi;
+  readonly papers: PapersApi;
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
@@ -298,4 +300,73 @@ export interface WebsiteApi {
   media(id: string): Promise<Response | null>;
   publish(): Promise<void>;
   unpublish(): Promise<void>;
+}
+
+// ---- Exam & Evals -------------------------------------------------------------------------
+
+export type EvalStatus = "pending" | "evaluated" | "failed" | "confirmed";
+/** One question as the evaluator marked it. */
+export type EvalQuestion = { q: string; awarded: number; max: number; comment: string };
+/** What the evaluator returns: the text it read off the sheet and the marks it suggests. */
+export type EvalResult = { extracted_text: string; questions: EvalQuestion[]; total: number; max_marks: number; feedback: string; confidence: string };
+export type EvalRow = {
+  id: string; title: string; status: EvalStatus; section: string; subject: string; student: string; admission_no: string;
+  max_marks: number; score: number | null; final_score: number | null; created_by: string; created_at: string;
+};
+export type Eval = EvalRow & {
+  answer_key: string; mime: string; provider: string | null; result: EvalResult | null; error: string | null; evaluated_at: string | null;
+  confirmed_by: string | null; confirmed_at: string | null; note: string | null;
+};
+
+export interface ExamsApi {
+  /** Evals this person may see, newest first; `edit` when they may evaluate in some section. */
+  list(q: { section?: string; subject?: string }): Promise<{ edit: boolean; evals: EvalRow[]; sections: Choice[]; subjects: Choice[] }>;
+  /** The upload form's choices: sections this person may evaluate in, and the subjects and students of the one chosen. */
+  form(section: string | undefined): Promise<{ sections: Choice[]; section: string | null; subjects: Choice[]; students: Choice[] }>;
+  /** Stores the sheet and asks the evaluator; returns the eval's id whatever the evaluator answered. */
+  evaluate(f: Form, file: Upload | null): Promise<{ id: string }>;
+  get(id: string): Promise<{ edit: boolean; eval: Eval }>;
+  retry(id: string): Promise<void>;
+  confirm(id: string, f: Form): Promise<void>;
+  image(id: string): Promise<Response>;
+}
+
+// ---- Exam & Evals: syllabus, exams, papers, answer keys -----------------------------------
+
+export type SyllabusFile = { id: string; subject_id: string; subject: string; class_name: string; title: string; file_name: string; mime: string; uploaded_by: string; at: string };
+export type ExamRow = { id: string; name: string; term: string | null; starts_on: string; ends_on: string; papers: number; locked: number };
+export type PaperRow = { id: string; exam_id: string; subject_id: string; subject: string; class_name: string; exam_date: string | null; max_marks: number;
+  has_paper: number; questions: number; total: number; key_locked_at: string | null };
+export type KeyPoint = { id: string; text: string; marks: number; suggested: number };
+export type Question = { id: string; seq: number; number: string; section: string | null; text: string; marks: number; choice_group: string | null;
+  answer: string | null; suggested: number; points: KeyPoint[] };
+/** Plain arithmetic over the paper, worked out in core: what still blocks locking the key. */
+export type PaperCheck = { counted: number; max_marks: number; unkeyed: string[]; unreviewed: string[]; short: { number: string; points: number; marks: number }[] };
+export type Paper = PaperRow & { exam: string; paper_name: string | null; read_error: string | null; suggest_error: string | null; key_locked_by: string | null;
+  questions_list: Question[]; check: PaperCheck; syllabus: SyllabusFile[]; ai: boolean };
+
+export interface PapersApi {
+  syllabus(): Promise<{ edit: boolean; year: string | null; files: SyllabusFile[]; subjects: Choice[] }>;
+  addSyllabus(subjectId: string, title: string, file: Upload | null): Promise<void>;
+  removeSyllabus(id: string): Promise<void>;
+  syllabusFile(id: string): Promise<Response>;
+
+  exams(): Promise<{ create: boolean; exams: ExamRow[]; terms: Choice[] }>;
+  createExam(f: Form): Promise<{ id: string }>;
+  exam(id: string): Promise<{ create: boolean; exam: ExamRow; papers: (PaperRow & { mine: boolean })[]; subjects: Choice[] }>;
+  addPaper(examId: string, f: Form): Promise<{ id: string }>;
+
+  paper(id: string): Promise<{ edit: boolean; paper: Paper }>;
+  uploadPaper(id: string, file: Upload | null): Promise<void>;
+  paperFile(id: string): Promise<Response>;
+  /** Optional AI step: reads questions off the uploaded paper as a draft. Refused when questions exist unless replace. */
+  readQuestions(id: string, replace: boolean): Promise<{ added: number }>;
+  saveQuestion(paperId: string, questionId: string | null, f: Form): Promise<void>;
+  removeQuestion(paperId: string, questionId: string): Promise<void>;
+  /** The expected answer and marking points (fields answer, p_text_N, p_marks_N). */
+  saveKey(paperId: string, questionId: string, f: Form): Promise<void>;
+  /** The only regular AI step: drafts keys for questions without points (or one question). Never touches a saved key. */
+  suggestKey(paperId: string, questionId: string | null): Promise<{ suggested: number }>;
+  lockKey(paperId: string): Promise<void>;
+  unlockKey(paperId: string): Promise<void>;
 }

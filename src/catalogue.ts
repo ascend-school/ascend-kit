@@ -54,12 +54,13 @@ export type PlanStep = { key: string; name: string; sort: number; added: { key: 
 export const MODULE_READY: Record<string, "ready" | "partly"> = {
   student_master: "ready", staff_master: "ready", academic_structure: "ready", student_info: "ready", multi_branch: "ready",
   attendance: "ready", fees_basic: "ready", communication: "ready", timetable_manual: "ready", id_cards: "ready", parent_app_basic: "ready",
-  notification_engine: "partly",
+  notification_engine: "partly", exams: "partly",
 };
 /** Plan features usable today (or services Ascend provides); the rest are coming. */
 export const FEATURE_READY = new Set(["school.website", "school.custom_domain", "support.priority", "support.dedicated_manager"]);
 export const READY_NOTE: Record<string, string> = {
   notification_engine: "notices in the portal today; SMS and WhatsApp coming",
+  exams: "answer-sheet evaluation today; marks entry and report cards coming",
 };
 /** A module in a list, with its state when it is not fully ready. Labels are plain text; callers escape nothing else. */
 export function moduleItem(m: { key: string; name: string }, escape: (s: string) => string): string {

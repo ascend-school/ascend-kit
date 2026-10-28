@@ -36,6 +36,7 @@ code{font:500 .85em/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .stack{display:grid;gap:var(--gap,1rem)}
 .cluster{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+form.cluster:has(.field){align-items:flex-end}
 .split{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
 svg.i{width:1.15em;height:1.15em;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em}
 

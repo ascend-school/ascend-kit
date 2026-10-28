@@ -55,8 +55,8 @@ export function portalHost(slug: string, suffix: string): string {
 }
 
 export function urlFor(host: string, suffix: string): string {
-  // Local development runs on plain http.
-  return suffix === "localhost" ? `http://${host}:8788` : `https://${host}`;
+  // Local development runs on plain http, through the gateway (npm run dev:all, port 8790).
+  return suffix === "localhost" ? `http://${host}:8790` : `https://${host}`;
 }
 
 export type SchoolSurface = "website" | "portal";
