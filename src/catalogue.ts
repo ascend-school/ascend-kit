@@ -37,8 +37,8 @@ export type FeatureRow = { plan_key: string; feature: string; enabled: number; l
 /** One line per plan, so each card says who it is for. */
 export const PLAN_TAGLINE: Record<string, string> = {
   starter: "Get off paper: records, attendance, fee receipts, notices and the timetable.",
-  standard: "Your school website today, with report cards, certificates and admissions as they arrive.",
-  premium: "The money side of the school: fee collection, payroll and transport, as each one arrives.",
+  standard: "Your school website today, with certificates and admissions as they arrive.",
+  premium: "Exam & Evals today: suggested marks for answer sheets, and answer keys. Then the money side: fee collection, payroll and transport.",
   group: "Every school and branch of your trust in one account, side by side.",
 };
 
@@ -66,7 +66,8 @@ export const READY_NOTE: Record<string, string> = {
 export function moduleItem(m: { key: string; name: string }, escape: (s: string) => string): string {
   const state = MODULE_READY[m.key];
   if (state === "ready") return `<li>${escape(m.name)}</li>`;
-  if (state === "partly") return `<li>${escape(m.name)} <span class="soon">Partly ready${READY_NOTE[m.key] ? `: ${escape(READY_NOTE[m.key]!)}` : ""}</span></li>`;
+  // The note sits outside the pill: a pill never wraps, and a long note would push a narrow plan card wide.
+  if (state === "partly") return `<li>${escape(m.name)} <span class="soon">Partly ready</span>${READY_NOTE[m.key] ? `<span class="muted">: ${escape(READY_NOTE[m.key]!)}</span>` : ""}</li>`;
   return `<li>${escape(m.name)} <span class="soon">Coming soon</span></li>`;
 }
 
