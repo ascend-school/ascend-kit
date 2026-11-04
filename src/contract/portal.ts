@@ -78,6 +78,7 @@ export interface PortalSession {
   readonly leave: LeaveApi;
   readonly admissions: AdmissionsApi;
   readonly compliance: ComplianceApi;
+  readonly library: LibraryApi;
   readonly website: WebsiteApi;
 }
 
@@ -462,4 +463,27 @@ export type RteStatus = { rte: number; total: number; share: number; meets: bool
 export interface ComplianceApi {
   /** Counted from the records on every call; nothing is stored or filed. */
   report(): Promise<{ year: string | null; rows: ComplianceRow[]; totals: ComplianceRow; staff: number; rte: RteStatus }>;
+}
+
+/** Library (Premium): a title on the shelf, with how many copies can be taken now. */
+export type LibraryBook = { id: string; title: string; author: string | null; code: string | null; copies: number; out: number; available: number };
+export type LoanState = "returned" | "overdue" | "due_today" | "out";
+/** One copy in a child's hands, or the record of one that came back. */
+export type LibraryLoan = {
+  id: string; title: string; student: string; admission_no: string;
+  taken_on: string; due_on: string; returned_on: string | null;
+  state: LoanState;
+  /** Days late; 0 when it is not, and 0 once returned. */
+  late: number;
+};
+
+export interface LibraryApi {
+  list(): Promise<{ canEdit: boolean; books: LibraryBook[]; loans: LibraryLoan[] }>;
+  /** Students to issue to, by name or admission number. */
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Fields: title, author, code, copies. */
+  addBook(f: Form): Promise<void>;
+  /** Fields: book, student. Throws AppError 400 when no copy is free or the child holds too many. */
+  issue(f: Form): Promise<void>;
+  giveBack(id: string): Promise<void>;
 }
