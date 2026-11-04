@@ -79,6 +79,7 @@ export interface PortalSession {
   readonly admissions: AdmissionsApi;
   readonly compliance: ComplianceApi;
   readonly library: LibraryApi;
+  readonly inventory: InventoryApi;
   readonly website: WebsiteApi;
 }
 
@@ -486,4 +487,17 @@ export interface LibraryApi {
   /** Fields: book, student. Throws AppError 400 when no copy is free or the child holds too many. */
   issue(f: Form): Promise<void>;
   giveBack(id: string): Promise<void>;
+}
+
+/** Inventory (Premium): a thing the store keeps, with the count its movements add up to. */
+export type InventoryItem = { id: string; name: string; unit: string | null; code: string | null; stock: number };
+/** One movement: positive came in, negative went out. */
+export type InventoryMove = { id: string; item: string; delta: number; note: string | null; actor: string; at: string };
+
+export interface InventoryApi {
+  list(): Promise<{ canEdit: boolean; items: InventoryItem[]; moves: InventoryMove[] }>;
+  /** Fields: name, unit, code. */
+  addItem(f: Form): Promise<void>;
+  /** Fields: item, qty, way ("in" or "out"), note. Throws AppError 400 when it would leave less than nothing. */
+  move(f: Form): Promise<void>;
 }
