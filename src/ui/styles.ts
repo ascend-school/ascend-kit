@@ -316,6 +316,12 @@ details[open]>summary::before{transform:rotate(45deg)}
 .certificate h1{margin:0;text-align:center;font-size:13pt;letter-spacing:.09em;text-transform:uppercase}
 .certificate.on-template{border:none;background-size:cover;background-position:center;background-repeat:no-repeat;min-height:265mm;padding:40mm 24mm 24mm}
 .certificate.on-template>header{display:none}
+.reportcard{max-width:170mm;margin:0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:14mm;display:grid;gap:6mm;break-inside:avoid}
+.reportcard header{display:flex;gap:4mm;align-items:center;border-bottom:1px solid var(--line);padding-bottom:5mm}.reportcard header img{width:12mm;height:12mm;object-fit:contain}
+.reportcard header strong{display:block;font-size:13pt}.reportcard header span{display:block;font-size:8.5pt;color:var(--ink-2)}
+.reportcard h1{margin:0;text-align:center;font-size:13pt;letter-spacing:.08em;text-transform:uppercase}
+.reportcard footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:8mm;font-size:9pt;color:var(--ink-2)}.reportcard footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
+.marks-in{width:5.5rem;text-align:right}
 .certificate-no{display:flex;justify-content:space-between;margin:0;font-size:8.5pt;color:var(--ink-2)}
 .certificate-body{margin:0;font-size:11.5pt;line-height:2.1;text-align:justify}
 .certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}

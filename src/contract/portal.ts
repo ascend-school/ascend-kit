@@ -83,6 +83,7 @@ export interface PortalSession {
   readonly transport: TransportApi;
   readonly cashbook: CashbookApi;
   readonly payroll: PayrollApi;
+  readonly marks: MarksApi;
   readonly website: WebsiteApi;
 }
 
@@ -577,4 +578,30 @@ export interface PayrollApi {
   /** Owner only; throws AppError 403 for anyone else. */
   approve(runId: string): Promise<void>;
   markPaid(runId: string): Promise<void>;
+}
+
+/** Exam marks (Standard): one student's line on a marks sheet. */
+export type MarkRow = { student_id: string; name: string; admission_no: string; marks: number | null; absent: number };
+/** What a report card adds up to. An absent paper is shown but not counted. */
+export type ReportSummary = { sat: number; got: number; outOf: number; percent: number; passed: boolean; absent: number };
+export type ReportCard = {
+  exam: { name: string; starts_on: string; ends_on: string };
+  student: { name: string; admission_no: string; section: string | null };
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null };
+  lines: { subject: string; marks: number | null; absent: boolean; max: number }[];
+  summary: ReportSummary;
+};
+
+export interface MarksApi {
+  /** Staff only: the sheet for one paper and section. `canEnter` is false for a subject this person does not teach. */
+  sheet(q: { exam?: string; paper?: string; section?: string }): Promise<{
+    exams: Choice[]; exam: string | null; papers: Choice[]; paper: string | null;
+    sections: Choice[]; section: string | null; max: number; canEnter: boolean; rows: MarkRow[];
+  }>;
+  /** Fields: paper, section, and m_<studentId> / a_<studentId> per student. Refuses the whole sheet if any mark is wrong. */
+  save(f: Form): Promise<void>;
+  /** Students whose card this person may open: a guardian's children, a teacher's sections, all for the office. */
+  cards(examId?: string): Promise<{ exams: Choice[]; exam: string | null; students: { id: string; name: string; admission_no: string; section: string | null }[] }>;
+  /** null when the student has no marks in that exam. */
+  card(examId: string, studentId: string): Promise<ReportCard | null>;
 }
