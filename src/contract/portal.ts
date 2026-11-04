@@ -75,6 +75,8 @@ export interface PortalSession {
   readonly idcards: IdCardsApi;
   readonly certificates: CertificatesApi;
   readonly homework: HomeworkApi;
+  readonly leave: LeaveApi;
+  readonly admissions: AdmissionsApi;
   readonly website: WebsiteApi;
 }
 
@@ -412,4 +414,41 @@ export interface HomeworkApi {
   /** Fields: pair ("sectionId:subjectId"), due_on, body. Throws AppError 403 for a subject this person does not teach. */
   post(f: Form): Promise<void>;
   remove(id: string): Promise<void>;
+}
+
+/** Leave (Standard): a staff member's own, or a student's, with where it stands. */
+export type LeaveStatus = "pending" | "approved" | "declined" | "withdrawn";
+export type LeaveRow = {
+  id: string; kind: "staff" | "student"; who: string; detail: string | null;
+  from_on: string; to_on: string; reason: string; status: LeaveStatus;
+  asked_by: string; at: string; decided_by: string | null; decided_at: string | null;
+  /** The signed-in person asked for this one, so they may withdraw it. */
+  own: number;
+  /** This person may approve or decline it now. */
+  canDecide: boolean;
+};
+
+export interface LeaveApi {
+  /** `children` are students this person may ask for, as [id, name]. */
+  list(): Promise<{ rows: LeaveRow[]; canAskSelf: boolean; children: [string, string][] }>;
+  /** Fields: for ("me" or a student id), from_on, to_on, reason. */
+  ask(f: Form): Promise<void>;
+  decide(id: string, approve: boolean): Promise<void>;
+  withdraw(id: string): Promise<void>;
+}
+
+/** Admissions (Standard): one person asking about a seat, and where their enquiry stands. */
+export type AdmissionStage = "enquiry" | "applied" | "admitted" | "declined" | "enrolled";
+export type AdmissionRow = {
+  id: string; name: string; guardian: string | null; mobile: string | null;
+  status: AdmissionStage; note: string | null; at: string; moved_at: string | null;
+  class_name: string | null;
+};
+
+export interface AdmissionsApi {
+  list(): Promise<{ rows: AdmissionRow[]; classes: [string, string][]; canEdit: boolean }>;
+  /** Fields: name, guardian, mobile, class_id, note. */
+  add(f: Form): Promise<void>;
+  /** Throws AppError 400 when the stage cannot follow the current one. */
+  move(id: string, to: string): Promise<void>;
 }
