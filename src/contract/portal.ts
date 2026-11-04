@@ -270,10 +270,17 @@ export interface TimetableApi {
 export type Audience = "all" | "staff" | "parents" | "class";
 export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number };
 
+/** How a notice went out on one channel. `reason` is the first failure, for the office to read. */
+export type NoticeDelivery = { channel: "sms" | "whatsapp"; summary: string; reason: string | null };
+
 export interface NoticesApi {
   list(): Promise<{ edit: boolean; notices: Notice[]; classes: { id: string; name: string }[] }>;
   post(f: Form): Promise<void>;
   withdraw(id: string): Promise<void>;
+  /** Queues a notice to a channel and tries each send now. Sending twice adds nobody twice. */
+  send(noticeId: string, channel: string): Promise<void>;
+  /** Empty until a notice has been sent on some channel. */
+  delivery(noticeId: string): Promise<NoticeDelivery[]>;
 }
 
 export interface PeopleApi {
