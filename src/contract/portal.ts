@@ -80,6 +80,7 @@ export interface PortalSession {
   readonly compliance: ComplianceApi;
   readonly library: LibraryApi;
   readonly inventory: InventoryApi;
+  readonly transport: TransportApi;
   readonly website: WebsiteApi;
 }
 
@@ -500,4 +501,34 @@ export interface InventoryApi {
   addItem(f: Form): Promise<void>;
   /** Fields: item, qty, way ("in" or "out"), note. Throws AppError 400 when it would leave less than nothing. */
   move(f: Form): Promise<void>;
+}
+
+/** Transport (Premium): a route with its stops, and how full it is. */
+export type TransportRoute = {
+  id: string; name: string; vehicle_no: string | null; driver: string | null; driver_mobile: string | null;
+  seats: number | null; taken: number;
+  /** Seats left, or null when the route has no count set. */
+  left: number | null;
+  /** The stops in order, joined for reading. */
+  stops: string;
+};
+/** One child's ride, with the driver a guardian would ring. */
+export type TransportRide = {
+  student_id: string; student: string; route: string; stop: string;
+  vehicle_no: string | null; driver: string | null; driver_mobile: string | null;
+};
+
+export interface TransportApi {
+  /** A guardian gets only their children's rides and an empty route list. */
+  list(): Promise<{ canEdit: boolean; routes: TransportRoute[]; rides: TransportRide[] }>;
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Stops to put a child on, as [id, "Route · Stop"]. */
+  stops(): Promise<[string, string][]>;
+  /** Fields: name, vehicle_no, driver, driver_mobile, seats. */
+  addRoute(f: Form): Promise<void>;
+  /** Fields: route, name, sort. */
+  addStop(f: Form): Promise<void>;
+  /** Fields: student, stop. Throws AppError 400 when the route is full. */
+  assign(f: Form): Promise<void>;
+  unassign(studentId: string): Promise<void>;
 }
