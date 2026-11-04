@@ -382,6 +382,8 @@ export type Certificate = {
   student: { name: string; admission_no: string; dob: string | null; gender: string | null; admission_date: string | null; section: string | null; guardian: string | null };
   school: { name: string; address: string | null; town: string | null; logo_key: string | null };
   year: string | null;
+  /** The school has uploaded its own letterhead for this kind, so the built-in header is left off. */
+  template: boolean;
 };
 
 export interface CertificatesApi {
@@ -392,4 +394,10 @@ export interface CertificatesApi {
   issue(a: { student: string; kind: CertificateKind }): Promise<{ id: string }>;
   /** null when the id is not this school's. */
   one(id: string): Promise<Certificate | null>;
+  /** Which kinds the school has uploaded a letterhead for. */
+  templates(): Promise<Record<CertificateKind, boolean>>;
+  /** A null file removes it. Throws AppError 403 without edit. */
+  saveTemplate(kind: CertificateKind, file: Upload | null): Promise<void>;
+  /** null when the school has none for that kind. */
+  template(kind: CertificateKind): Promise<Response | null>;
 }
