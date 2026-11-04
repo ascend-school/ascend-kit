@@ -310,6 +310,13 @@ details[open]>summary::before{transform:rotate(45deg)}
 .idcard header span{display:block;font-size:7pt;opacity:.85}.idcard-body{display:flex;gap:3mm;padding:2.5mm 3mm}.idcard-body span{display:block}
 .idphoto{width:20mm;height:25mm;object-fit:cover;border:1px solid var(--line);border-radius:1mm;flex:none;display:block}.idname{display:block;font-size:10.5pt;margin-bottom:1mm}
 .idcard footer{font-size:7pt;padding:1mm 3mm;border-top:1px solid var(--line);color:var(--ink-2)}
+.certificate{max-width:170mm;margin:0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:14mm;display:grid;gap:7mm;break-inside:avoid}
+.certificate header{display:flex;gap:4mm;align-items:center;border-bottom:1px solid var(--line);padding-bottom:5mm}.certificate header img{width:12mm;height:12mm;object-fit:contain}
+.certificate header strong{display:block;font-size:13pt}.certificate header span{display:block;font-size:8.5pt;color:var(--ink-2)}
+.certificate h1{margin:0;text-align:center;font-size:13pt;letter-spacing:.09em;text-transform:uppercase}
+.certificate-no{display:flex;justify-content:space-between;margin:0;font-size:8.5pt;color:var(--ink-2)}
+.certificate-body{margin:0;font-size:11.5pt;line-height:2.1;text-align:justify}
+.certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .cal{border-collapse:collapse;width:100%;min-width:36rem;table-layout:fixed}.cal th{font-size:.8rem;color:var(--ink-2);text-align:left;padding:.3rem .4rem}
 .cal td{border:1px solid var(--line);vertical-align:top;height:4.2rem;padding:.3rem .4rem;font-size:.8rem}.cal .cal-n{display:block;font-weight:600;margin-bottom:.2rem}

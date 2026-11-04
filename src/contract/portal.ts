@@ -73,6 +73,7 @@ export interface PortalSession {
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
+  readonly certificates: CertificatesApi;
   readonly website: WebsiteApi;
 }
 
@@ -369,4 +370,26 @@ export interface PapersApi {
   suggestKey(paperId: string, questionId: string | null): Promise<{ suggested: number }>;
   lockKey(paperId: string): Promise<void>;
   unlockKey(paperId: string): Promise<void>;
+}
+
+/** Certificates (Standard): what the office issues from a student's own record. */
+export type CertificateKind = "bonafide" | "conduct" | "transfer";
+/** One line in the issued list. */
+export type CertificateRow = { id: string; serial: string; kind: CertificateKind; student: string; admission_no: string; at: string; issued_by: string };
+/** An issued certificate with everything its printed page shows, read from the record at print time. */
+export type Certificate = {
+  id: string; serial: string; kind: CertificateKind; at: string;
+  student: { name: string; admission_no: string; dob: string | null; gender: string | null; admission_date: string | null; section: string | null; guardian: string | null };
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null };
+  year: string | null;
+};
+
+export interface CertificatesApi {
+  /** Active students matching a name or admission number; empty under two characters. */
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  recent(): Promise<CertificateRow[]>;
+  /** Issues one and returns its id. Throws AppError 403 without edit, 404 for a student out of scope. */
+  issue(a: { student: string; kind: CertificateKind }): Promise<{ id: string }>;
+  /** null when the id is not this school's. */
+  one(id: string): Promise<Certificate | null>;
 }
