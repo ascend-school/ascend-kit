@@ -77,6 +77,7 @@ export interface PortalSession {
   readonly homework: HomeworkApi;
   readonly leave: LeaveApi;
   readonly admissions: AdmissionsApi;
+  readonly compliance: ComplianceApi;
   readonly website: WebsiteApi;
 }
 
@@ -451,4 +452,14 @@ export interface AdmissionsApi {
   add(f: Form): Promise<void>;
   /** Throws AppError 400 when the stage cannot follow the current one. */
   move(id: string, to: string): Promise<void>;
+}
+
+/** Compliance (Standard): one class's heads, as UDISE+ asks for them. */
+export type ComplianceRow = { class_name: string; boys: number; girls: number; other: number; total: number; rte: number };
+/** Where the school stands against the RTE share. */
+export type RteStatus = { rte: number; total: number; share: number; meets: boolean; shortfall: number };
+
+export interface ComplianceApi {
+  /** Counted from the records on every call; nothing is stored or filed. */
+  report(): Promise<{ year: string | null; rows: ComplianceRow[]; totals: ComplianceRow; staff: number; rte: RteStatus }>;
 }
