@@ -11,6 +11,9 @@
  * never changes this file or its cache.
  */
 export const BASE_CSS = `
+/* Reissued 2026-11-04: base.css is immutable for a year and its token is a hash of this
+   file, so a byte here is the only way to replace a copy cached while the gateway lagged. */
+
 @font-face{font-family:"Anek Latin";src:url(/fonts/anek-latin.woff2) format("woff2");font-weight:100 800;font-stretch:75% 125%;font-display:swap}
 @font-face{font-family:"Hind";src:url(/fonts/hind-400.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Hind";src:url(/fonts/hind-500.woff2) format("woff2");font-weight:500;font-display:swap}
