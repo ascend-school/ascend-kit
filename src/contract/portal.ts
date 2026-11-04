@@ -74,6 +74,7 @@ export interface PortalSession {
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
   readonly certificates: CertificatesApi;
+  readonly homework: HomeworkApi;
   readonly website: WebsiteApi;
 }
 
@@ -400,4 +401,15 @@ export interface CertificatesApi {
   saveTemplate(kind: CertificateKind, file: Upload | null): Promise<void>;
   /** null when the school has none for that kind. */
   template(kind: CertificateKind): Promise<Response | null>;
+}
+
+/** Homework (Standard): what one section's subject teacher has set, due on a day. */
+export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number };
+
+export interface HomeworkApi {
+  /** `choices` are the section-and-subject pairs this person may set, as [value, label]. */
+  list(): Promise<{ canSet: boolean; rows: HomeworkRow[]; choices: [string, string][] }>;
+  /** Fields: pair ("sectionId:subjectId"), due_on, body. Throws AppError 403 for a subject this person does not teach. */
+  post(f: Form): Promise<void>;
+  remove(id: string): Promise<void>;
 }
