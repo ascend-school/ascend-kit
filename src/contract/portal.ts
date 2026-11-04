@@ -81,6 +81,8 @@ export interface PortalSession {
   readonly library: LibraryApi;
   readonly inventory: InventoryApi;
   readonly transport: TransportApi;
+  readonly cashbook: CashbookApi;
+  readonly payroll: PayrollApi;
   readonly website: WebsiteApi;
 }
 
@@ -531,4 +533,48 @@ export interface TransportApi {
   /** Fields: student, stop. Throws AppError 400 when the route is full. */
   assign(f: Form): Promise<void>;
   unassign(studentId: string): Promise<void>;
+}
+
+/** Income and expenses (Premium): one line of the cash book. */
+export type CashEntry = {
+  id: string; on_date: string; way: "in" | "out"; head: string;
+  amount_paise: number; mode: string; note: string | null;
+  /** "fees" rows are read from fee_payments and cannot be changed here. */
+  source: "book" | "fees";
+};
+
+export interface CashbookApi {
+  /** One month, "YYYY-MM"; the current month when not given. Fee collections are included, read-only. */
+  list(month?: string): Promise<{ month: string; rows: CashEntry[]; totals: { in: number; out: number; net: number }; canEdit: boolean }>;
+  /** Fields: way ("in"/"out"), on_date, head, amount (rupees), mode, note. The book is append-only. */
+  add(f: Form): Promise<void>;
+}
+
+/** Payroll (Premium): a person's monthly pay as it stands now. */
+export type StaffSalary = { staff_id: string; name: string; designation: string | null; monthly_paise: number | null };
+export type RunStatus = "draft" | "approved" | "paid";
+/** The month's run: prepared by the accountant, approved by the owner, then marked paid. */
+export type PayrollRun = { id: string; month: string; status: RunStatus; approved_by: string | null; approved_at: string | null; paid_at: string | null };
+/** One person's line in a run. The pay is as it stood when the run was opened. */
+export type PayrollLine = {
+  id: string; staff: string; designation: string | null;
+  gross_paise: number; deduction_paise: number; net_paise: number;
+  note: string | null; month: string; status: RunStatus;
+};
+
+export interface PayrollApi {
+  /** A teacher gets only their own approved and paid payslips. */
+  list(month?: string): Promise<{
+    month: string; run: PayrollRun | null; lines: PayrollLine[]; salaries: StaffSalary[];
+    canPrepare: boolean; canApprove: boolean;
+  }>;
+  /** Fields: staff, amount (rupees). */
+  setSalary(f: Form): Promise<void>;
+  /** Opens the month from the salaries as they stand. Throws AppError 400 if already open. */
+  open(month: string): Promise<void>;
+  /** Fields: amount (rupees, blank for none), note. Draft runs only. */
+  setDeduction(lineId: string, f: Form): Promise<void>;
+  /** Owner only; throws AppError 403 for anyone else. */
+  approve(runId: string): Promise<void>;
+  markPaid(runId: string): Promise<void>;
 }
