@@ -123,9 +123,14 @@ export interface SetupApi {
   addHoliday(f: Form): Promise<void>;
   removeHoliday(id: string): Promise<void>;
   classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null }[];
-    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[]; subjects: { class_id: string; name: string }[] }>;
+    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[];
+    subjects: { id: string; class_id: string; name: string; periods_per_week: number }[];
+    /** Working days and periods a day, so a page can weigh the quotas against the week. */
+    week: { days: number; periods: number } }>;
   addClass(f: Form): Promise<void>;
   addToClass(classId: string, what: "sections" | "subjects", f: Form): Promise<void>;
+  /** Fields p_<subjectId>, periods a week; blank or 0 means the subject is not scheduled. */
+  setSubjectPeriods(classId: string, f: Form): Promise<void>;
   section(id: string): Promise<{ edit: boolean; section: SectionRow; subjects: { id: string; name: string }[]; mapped: { subject_id: string; staff_id: string }[]; staff: Choice[] }>;
   saveSection(id: string, f: Form): Promise<void>;
 }
@@ -258,13 +263,21 @@ export type Shape = { days: number[]; periods: number };
 /** One teacher in two sections at the same period. `sections` are labels, already sorted. */
 export type TimetableClash = { day: number; period: number; staff: string; sections: string[] };
 
+/** What generating a draft did: how many periods went in, and what would not fit. */
+export type Generated = { placed: number; unplaced: { subject: string; wanted: number; placed: number }[] };
+
 export interface TimetableApi {
   /** Empty when the plan has no clash checks. School-wide, whichever version is asked for. */
   clashes(version: "draft" | "live"): Promise<TimetableClash[]>;
+  /** Fills the section's draft from the subjects' weekly periods. Throws AppError 403 without the plan feature. */
+  generate(id: string): Promise<Generated>;
   overview(): Promise<{ grant: Grant; shape: Shape; sections: { id: string; cls: string; sec: string; status: TimetableStatus["status"] | null; note: string | null }[];
     mine: { day: number; period: number; cls: string; subject: string }[] }>;
   section(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; live: Slot[]; draft: Slot[]; st: TimetableStatus | null }>;
-  editPage(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; draft: Slot[]; live: Slot[]; subjects: { id: string; name: string }[] }>;
+  editPage(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; draft: Slot[]; live: Slot[];
+    subjects: { id: string; name: string; periods_per_week: number }[];
+    /** The plan includes auto-generation; the page still needs a quota set before it offers it. */
+    canGenerate: boolean }>;
   setPeriods(periods: string): Promise<void>;
   save(id: string, f: Form): Promise<void>;
   decide(id: string, action: "approve" | "return", note: string | undefined): Promise<void>;
