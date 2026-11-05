@@ -255,7 +255,12 @@ export type TimetableStatus = { status: "draft" | "submitted" | "approved"; note
 export type Slot = { day: number; period: number; subject_id: string; subject: string; teacher: string | null };
 export type Shape = { days: number[]; periods: number };
 
+/** One teacher in two sections at the same period. `sections` are labels, already sorted. */
+export type TimetableClash = { day: number; period: number; staff: string; sections: string[] };
+
 export interface TimetableApi {
+  /** Empty when the plan has no clash checks. School-wide, whichever version is asked for. */
+  clashes(version: "draft" | "live"): Promise<TimetableClash[]>;
   overview(): Promise<{ grant: Grant; shape: Shape; sections: { id: string; cls: string; sec: string; status: TimetableStatus["status"] | null; note: string | null }[];
     mine: { day: number; period: number; cls: string; subject: string }[] }>;
   section(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; live: Slot[]; draft: Slot[]; st: TimetableStatus | null }>;

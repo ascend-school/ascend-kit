@@ -59,7 +59,7 @@ export const MODULE_READY: Record<string, "ready" | "partly"> = {
   notification_engine: "partly",
 };
 /** Plan features usable today (or services Ascend provides); the rest are coming. */
-export const FEATURE_READY = new Set(["school.website", "school.custom_domain", "support.priority", "support.dedicated_manager"]);
+export const FEATURE_READY = new Set(["school.website", "school.custom_domain", "support.priority", "support.dedicated_manager", "timetable.clash_detection"]);
 export const READY_NOTE: Record<string, string> = {
   notification_engine: "notices in the portal today; SMS and WhatsApp coming",
 };
