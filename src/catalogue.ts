@@ -54,7 +54,7 @@ export type PlanStep = { key: string; name: string; sort: number; added: { key: 
 export const MODULE_READY: Record<string, "ready" | "partly"> = {
   student_master: "ready", staff_master: "ready", academic_structure: "ready", student_info: "ready", multi_branch: "ready",
   attendance: "ready", fees_basic: "ready", communication: "ready", timetable_manual: "ready", id_cards: "ready", parent_app_basic: "ready",
-  certificates: "ready", homework: "ready", leave: "ready", admissions: "ready", compliance: "ready", fees_advanced: "ready", owner_dashboard: "ready", library: "ready", inventory: "ready", transport: "ready", group_dashboard: "ready", income_expenses: "ready", payroll: "ready",
+  certificates: "ready", homework: "ready", leave: "ready", admissions: "ready", compliance: "ready", fees_advanced: "ready", owner_dashboard: "ready", library: "ready", inventory: "ready", transport: "ready", group_dashboard: "ready", hostel: "ready", income_expenses: "ready", payroll: "ready",
   exams: "ready",
   notification_engine: "partly",
 };

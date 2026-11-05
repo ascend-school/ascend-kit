@@ -79,6 +79,7 @@ export interface PortalSession {
   readonly admissions: AdmissionsApi;
   readonly compliance: ComplianceApi;
   readonly library: LibraryApi;
+  readonly hostel: HostelApi;
   readonly inventory: InventoryApi;
   readonly transport: TransportApi;
   readonly cashbook: CashbookApi;
@@ -629,4 +630,20 @@ export interface MarksApi {
   cards(examId?: string): Promise<{ exams: Choice[]; exam: string | null; students: { id: string; name: string; admission_no: string; section: string | null }[] }>;
   /** null when the student has no marks in that exam. */
   card(examId: string, studentId: string): Promise<ReportCard | null>;
+}
+
+/** Hostel (add-on): a room, with how many places are free. */
+export type HostelRoom = { id: string; name: string; capacity: number; note: string | null; taken: number; left: number };
+/** One boarder and the room they are in. */
+export type HostelBoarder = { student_id: string; student: string; admission_no: string; room: string; from_on: string };
+
+export interface HostelApi {
+  /** A guardian gets their own children's rooms and an empty room list. */
+  list(): Promise<{ canEdit: boolean; rooms: HostelRoom[]; boarders: HostelBoarder[] }>;
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Fields: name, capacity, note. */
+  addRoom(f: Form): Promise<void>;
+  /** Fields: student, room. Throws AppError 400 when the room is full. */
+  allocate(f: Form): Promise<void>;
+  release(studentId: string): Promise<void>;
 }
