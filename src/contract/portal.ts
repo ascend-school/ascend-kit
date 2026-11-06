@@ -287,13 +287,21 @@ export interface TimetableApi {
 // ---- Notices, people, promotion, ID cards ----------------------------------------------
 
 export type Audience = "all" | "staff" | "parents" | "class";
-export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number };
+export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number;
+  /** How many students a notice names. Zero means its whole audience; more means only their guardians. */
+  picked: number };
+
+/** A section in the picker, and how many active students it holds. */
+export type PickSection = { id: string; label: string; n: number };
+export type PickStudent = { id: string; name: string; admission_no: string; roll_no: string | null };
 
 /** How a notice went out on one channel. `reason` is the first failure, for the office to read. */
 export type NoticeDelivery = { channel: "sms" | "whatsapp"; summary: string; reason: string | null };
 
 export interface NoticesApi {
   list(): Promise<{ edit: boolean; notices: Notice[]; classes: { id: string; name: string }[] }>;
+  /** The students of one section, to tick for a notice meant only for them. */
+  pickPage(sectionId: string | undefined): Promise<{ sections: PickSection[]; section: PickSection | null; students: PickStudent[] }>;
   post(f: Form): Promise<void>;
   withdraw(id: string): Promise<void>;
   /** Queues a notice to a channel and tries each send now. Sending twice adds nobody twice. */

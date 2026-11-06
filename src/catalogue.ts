@@ -56,12 +56,15 @@ export const MODULE_READY: Record<string, "ready" | "partly"> = {
   attendance: "ready", fees_basic: "ready", communication: "ready", timetable_manual: "ready", id_cards: "ready", parent_app_basic: "ready",
   certificates: "ready", homework: "ready", leave: "ready", admissions: "ready", compliance: "ready", fees_advanced: "ready", owner_dashboard: "ready", library: "ready", inventory: "ready", transport: "ready", group_dashboard: "ready", hostel: "ready", income_expenses: "ready", payroll: "ready",
   exams: "ready",
+  // Both are live, gated by the plan features timetable.clash_detection and
+  // timetable.auto_generate rather than by their own module key.
+  timetable_advanced: "ready", timetable_auto: "ready",
   notification_engine: "partly",
 };
 /** Plan features usable today (or services Ascend provides); the rest are coming. */
 export const FEATURE_READY = new Set(["school.website", "school.custom_domain", "support.priority", "support.dedicated_manager", "timetable.clash_detection", "timetable.auto_generate"]);
 export const READY_NOTE: Record<string, string> = {
-  notification_engine: "notices in the portal today; SMS and WhatsApp coming",
+  notification_engine: "notices in the portal, and on WhatsApp once the school's message template is approved; SMS coming",
 };
 /** A module in a list, with its state when it is not fully ready. Labels are plain text; callers escape nothing else. */
 export function moduleItem(m: { key: string; name: string }, escape: (s: string) => string): string {
