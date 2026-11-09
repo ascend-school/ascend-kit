@@ -35,6 +35,7 @@ const ICONS = {
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+  back: '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
@@ -70,6 +71,7 @@ export const UI_VERSION = [...BASE_CSS].reduce((h, ch) => Math.imul(h ^ ch.charC
  * it every form still posts; a confirmed action just skips the question.
  */
 export const UI_SCRIPT = `document.addEventListener("click",e=>{if(e.target.closest("[data-print]")){e.preventDefault();print()}});
+document.addEventListener("click",e=>{if(!e.target.closest("[data-back]")||history.length<2)return;try{if(new URL(document.referrer).host!==location.host)return}catch{return}e.preventDefault();history.back()});
 const shut=d=>{d.close();if(location.hash==="#"+d.id)history.replaceState(null,"",location.pathname+location.search)};
 const deep=document.getElementById(location.hash.slice(1));if(deep&&deep.tagName==="DIALOG")deep.showModal();
 document.addEventListener("click",e=>{const t=e.target.closest("[data-open],[data-close],[data-confirm]");
@@ -79,7 +81,9 @@ if(t.hasAttribute("data-close")){e.preventDefault();const d=t.closest("dialog");
 if(t.dataset.ok){delete t.dataset.ok;return}
 e.preventDefault();const d=document.getElementById("confirm-dialog");d.querySelector("p").textContent=t.dataset.confirm;
 d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok"){t.dataset.ok="1";t.click()}};d.showModal()});`;
-const CONFIRM_DIALOG = `<dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title"><form method="dialog" class="stack">
+/** ui.js changes without base.css changing: its own token, so browsers fetch the new one. */
+const SCRIPT_VERSION = [...UI_SCRIPT].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261).toString(36);
+const CONFIRM_DIALOG =`<dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title"><form method="dialog" class="stack">
 <h2 id="confirm-title">Are you sure?</h2><p></p><div class="cluster modal-actions"><button value="cancel" class="quiet">Cancel</button><button value="ok" class="danger">Confirm</button></div></form></dialog>`;
 
 /** `head` carries a public page's description, canonical, social and structured-data tags. */
@@ -89,7 +93,7 @@ ${o.index ? "" : `<meta name="robots" content="noindex">`}<title>${esc(o.title)}
 <link rel="preload" href="/fonts/anek-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/_ui/theme.css"><link rel="stylesheet" href="/_ui/base.css?v=${UI_VERSION}">
 <link rel="icon" href="/_ui/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">${o.head ?? ""}</head>
-<body${o.bodyAttrs ?? ""}><a class="skip" href="#main">Skip to content</a>${o.body}${CONFIRM_DIALOG}<script src="/_ui/ui.js?v=${UI_VERSION}" defer></script></body></html>`;
+<body${o.bodyAttrs ?? ""}><a class="skip" href="#main">Skip to content</a>${o.body}${CONFIRM_DIALOG}<script src="/_ui/ui.js?v=${SCRIPT_VERSION}" defer></script></body></html>`;
 }
 
 
@@ -172,13 +176,31 @@ export function authPage(o: { title: string; org: string; headline: string; lead
 }
 
 /** The 404 every surface answers with: the brand frame, a way home, no dead end. */
-export const notFoundPage = (home = "/", label = "Go to the home page") => plainPage({ title: "Page not found · Ascend", heading: "This page does not exist",
-  body: `<p class="muted">The link may be old or mistyped.</p><p><a class="btn" ${href(home)}>${esc(label)}</a></p>` });
+/** An address nothing answers at, outside any shell. Signed-in apps show errors in their shell instead (common.ts errorBody). */
+export const notFoundPage = (home = "/", label = "Home", brand = "Ascend") => plainPage({ title: `We couldn't find that · ${brand}`, heading: "We couldn't find that", brand,
+  body: `<p>It may have been removed, or the link is old.</p>${backWays({ back: home, home, homeLabel: label })}` });
 
-/** A minimal frame for errors and notices outside any shell. */
-export function plainPage(o: { title: string; heading: string; body: string; flash?: Flash; index?: boolean }): string {
-  return document({ title: o.title, index: o.index, body: `<main class="work" id="main" style="max-width:40rem;margin:10vh auto">
-<a class="brand" href="/">${brandMark()}<span>Ascend</span></a>${flashHtml(o.flash)}<h1>${esc(o.heading)}</h1>${o.body}</main>` });
+/** The ways out of an error: Go back (history, else `back`), then the module, then home. A module that is home is dropped. */
+export function backWays(o: { back: string; module?: { href: string; label: string }; home?: string; homeLabel?: string }): string {
+  const home = o.home ?? "/";
+  const mod = o.module && o.module.href !== home ? `<a class="btn quiet" ${href(o.module.href)}>Back to ${esc(o.module.label)}</a>` : "";
+  return `<div class="cluster"><a class="btn" ${href(o.back)} data-back>${icon("back")}Go back</a>${mod}<a class="btn quiet" ${href(home)}>${esc(o.homeLabel ?? "Home")}</a></div>`;
+}
+
+/** The menu item an address sits under (longest match, never home): an error page's "Back to …" in apps without a module map. */
+export function navModule(groups: NavGroup[], path: string): { href: string; label: string } | undefined {
+  let best: NavItem | undefined;
+  for (const i of groups.flatMap((g) => g.items)) {
+    if (i.href !== "/" && (path === i.href || path.startsWith(`${i.href}/`)) && i.href.length > (best?.href.length ?? 0)) best = i;
+  }
+  return best && { href: best.href, label: best.label };
+}
+
+/** A minimal frame for errors and notices outside any shell, under the school's name or Ascend's. */
+export function plainPage(o: { title: string; heading: string; body: string; flash?: Flash; index?: boolean; brand?: string }): string {
+  const brand = o.brand ?? "Ascend";
+  return document({ title: o.title, index: o.index, body: `<main class="work stack" id="main" style="max-width:40rem;margin:10vh auto">
+<a class="brand" href="/">${brandMark(brand)}<span>${esc(brand)}</span></a>${flashHtml(o.flash)}<h1>${esc(o.heading)}</h1>${o.body}</main>` });
 }
 
 // ---- Page parts. -------------------------------------------------------------------
@@ -256,15 +278,15 @@ export function stops(items: Stop[]): string {
 
 // ---- Forms. ------------------------------------------------------------------------
 
-type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; pattern?: string; inputmode?: string; accept?: string; maxlength?: number };
+type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number };
 
 export function field(label: string, name: string, o: FieldOpts = {}): string {
   const id = o.id ?? `f-${name}`;
   const attrs = [
     o.required ? " required" : "", o.placeholder ? ` placeholder="${esc(o.placeholder)}"` : "",
-    o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "",
+    o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "", o.step ? ` step="${esc(o.step)}"` : "", o.max ? ` max="${esc(o.max)}"` : "",
     o.pattern ? ` pattern="${esc(o.pattern)}"` : "", o.inputmode ? ` inputmode="${esc(o.inputmode)}"` : "",
-    o.accept ? ` accept="${esc(o.accept)}"` : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "",
+    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "",
     o.hint ? ` aria-describedby="${esc(id)}-h"` : "",
   ].join("");
   return `<div class="field"><label for="${esc(id)}">${esc(label)}</label><input id="${esc(id)}" name="${esc(name)}" type="${esc(o.type ?? "text")}" value="${esc(o.value ?? "")}"${attrs}>${o.hint ? `<span class="hint" id="${esc(id)}-h">${esc(o.hint)}</span>` : ""}</div>`;
@@ -303,6 +325,13 @@ export const linkButton = (to: string, label: string, o: { variant?: "quiet"; sm
 /** A one-button form, for the many single actions a register row carries. */
 export const actionForm = (action: string, label: string, o: { variant?: "quiet" | "danger"; confirm?: string; hidden?: Record<string, string> } = {}) =>
   `<form method="post" action="${esc(action)}">${Object.entries(o.hidden ?? {}).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join("")}${button(label, { variant: o.variant ?? "quiet", small: true, confirm: o.confirm })}</form>`;
+
+/** Delete, when core allows it; otherwise why not, in its place, so nobody presses a button that can only fail. */
+export const deleteOr = (action: string, label: string, confirm: string, inUse: string | null) =>
+  inUse ? `<span class="small muted">${esc(inUse)}</span>` : actionForm(action, label, { variant: "danger", confirm });
+
+/** A row's actions: the same small size, side by side, right-aligned (on phones the table becomes cards, so they still fit). */
+export const rowActions = (...actions: string[]) => `<div class="cluster" style="justify-content:flex-end;gap:.4rem;flex-wrap:nowrap">${actions.filter(Boolean).join("")}</div>`;
 
 // ---- Sign-in. ----------------------------------------------------------------------
 

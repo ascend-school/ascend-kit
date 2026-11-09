@@ -70,6 +70,7 @@ export interface PortalSession {
   readonly notices: NoticesApi;
   readonly exams: ExamsApi;
   readonly papers: PapersApi;
+  readonly scripts: ScriptsApi;
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
@@ -104,19 +105,33 @@ export type Choice = [string, string];
 
 export interface SetupApi {
   profile(): Promise<{ edit: boolean; profile: Profile | null }>;
-  calendar(): Promise<{ edit: boolean; years: Year[]; terms: { year_id: string; name: string; starts_on: string; ends_on: string }[] }>;
+  /** `in_use`: why a year or term can't be deleted (null: it can). */
+  calendar(): Promise<{ edit: boolean; years: (Year & { in_use: string | null })[]; terms: { id: string; year_id: string; name: string; starts_on: string; ends_on: string; in_use: string | null }[] }>;
   holidays(): Promise<{ edit: boolean; holidays: { id: string; name: string; starts_on: string; ends_on: string }[] }>;
   saveProfile(f: Form, logo: Upload | null): Promise<void>;
   addYear(f: Form): Promise<void>;
   makeCurrent(id: string): Promise<void>;
+  updateYear(id: string, f: Form): Promise<void>;
+  removeYear(id: string): Promise<void>;
   addTerm(f: Form): Promise<void>;
+  updateTerm(id: string, f: Form): Promise<void>;
+  removeTerm(id: string): Promise<void>;
   addHoliday(f: Form): Promise<void>;
+  updateHoliday(id: string, f: Form): Promise<void>;
   removeHoliday(id: string): Promise<void>;
-  classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null }[];
-    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[]; subjects: { class_id: string; name: string }[] }>;
+  /** `in_use`: why a class, section or subject can't be deleted (null: it can). Renaming is always allowed. */
+  classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null; in_use: string | null }[];
+    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number; in_use: string | null }[];
+    subjects: { id: string; class_id: string; name: string; in_use: string | null }[] }>;
   addClass(f: Form): Promise<void>;
+  updateClass(id: string, f: Form): Promise<void>;
+  removeClass(id: string): Promise<void>;
   addToClass(classId: string, what: "sections" | "subjects", f: Form): Promise<void>;
+  removeSection(id: string): Promise<void>;
+  updateSubject(id: string, f: Form): Promise<void>;
+  removeSubject(id: string): Promise<void>;
   section(id: string): Promise<{ edit: boolean; section: SectionRow; subjects: { id: string; name: string }[]; mapped: { subject_id: string; staff_id: string }[]; staff: Choice[] }>;
+  /** Fields: name (optional: renames), class_teacher_id, subject_<id>. */
   saveSection(id: string, f: Form): Promise<void>;
 }
 
@@ -206,10 +221,12 @@ export interface FeesApi {
   overview(): Promise<{ dues: ({ id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[];
     recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null } | null>;
   structure(year: string | undefined): Promise<{ owner: boolean; all: Year[]; year: Year | null; classes: { id: string; name: string; n: number }[];
-    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; raised: number }[]; counts: { year_id: string; n: number }[] } | null>;
+    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; raised: number; collected: number }[]; counts: { year_id: string; n: number }[] } | null>;
   /** The year it went into. */
   addHead(f: Form): Promise<string>;
   copy(f: Form): Promise<string>;
+  /** Name and due date always; the amount only until money is collected against the head. The year it is in. */
+  updateHead(id: string, f: Form): Promise<string>;
   removeHead(id: string): Promise<string>;
   student(id: string): Promise<{ s: StudentRow; edit: boolean; concession: Grant | null; nonce: string; money: Money | null;
     lines: { description: string; amount_paise: number; concession_paise: number; due_on: string | null; kind: string }[]; payments: Payment[];
@@ -258,11 +275,13 @@ export interface TimetableApi {
 // ---- Notices, people, promotion, ID cards ----------------------------------------------
 
 export type Audience = "all" | "staff" | "parents" | "class";
-export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number };
+export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number; edited_at: string | null };
 
 export interface NoticesApi {
   list(): Promise<{ edit: boolean; notices: Notice[]; classes: { id: string; name: string }[] }>;
   post(f: Form): Promise<void>;
+  /** Title and text of a notice still up; it then shows as edited. */
+  edit(id: string, f: Form): Promise<void>;
   withdraw(id: string): Promise<void>;
 }
 
@@ -329,6 +348,8 @@ export interface ExamsApi {
   get(id: string): Promise<{ edit: boolean; eval: Eval }>;
   retry(id: string): Promise<void>;
   confirm(id: string, f: Form): Promise<void>;
+  /** Deletes an eval that isn't confirmed, with its photo. */
+  remove(id: string): Promise<void>;
   image(id: string): Promise<Response>;
 }
 
@@ -337,7 +358,9 @@ export interface ExamsApi {
 export type SyllabusFile = { id: string; subject_id: string; subject: string; class_name: string; title: string; file_name: string; mime: string; uploaded_by: string; at: string };
 export type ExamRow = { id: string; name: string; term: string | null; starts_on: string; ends_on: string; papers: number; locked: number };
 export type PaperRow = { id: string; exam_id: string; subject_id: string; subject: string; class_name: string; exam_date: string | null; max_marks: number;
-  has_paper: number; questions: number; total: number; key_locked_at: string | null };
+  has_paper: number; questions: number; total: number; key_locked_at: string | null;
+  /** Why the paper can't be edited or deleted now (null: it can). */
+  in_use: string | null };
 export type KeyPoint = { id: string; text: string; marks: number; suggested: number };
 export type Question = { id: string; seq: number; number: string; section: string | null; text: string; marks: number; choice_group: string | null;
   answer: string | null; suggested: number; points: KeyPoint[] };
@@ -349,15 +372,24 @@ export type Paper = PaperRow & { exam: string; paper_name: string | null; read_e
 export interface PapersApi {
   syllabus(): Promise<{ edit: boolean; year: string | null; files: SyllabusFile[]; subjects: Choice[] }>;
   addSyllabus(subjectId: string, title: string, file: Upload | null): Promise<void>;
+  renameSyllabus(id: string, title: string): Promise<void>;
   removeSyllabus(id: string): Promise<void>;
   syllabusFile(id: string): Promise<Response>;
 
   exams(): Promise<{ create: boolean; exams: ExamRow[]; terms: Choice[] }>;
   createExam(f: Form): Promise<{ id: string }>;
-  exam(id: string): Promise<{ create: boolean; exam: ExamRow; papers: (PaperRow & { mine: boolean })[]; subjects: Choice[] }>;
+  /** `in_use`: why the exam can't be deleted (null: it can, with its papers' drafts). */
+  exam(id: string): Promise<{ create: boolean; exam: ExamRow & { term_id: string | null; in_use: string | null }; papers: (PaperRow & { mine: boolean })[]; subjects: Choice[]; terms: Choice[] }>;
+  updateExam(id: string, f: Form): Promise<void>;
+  removeExam(id: string): Promise<void>;
   addPaper(examId: string, f: Form): Promise<{ id: string }>;
+  /** Maximum marks and date, while the key is unlocked. */
+  updatePaper(id: string, f: Form): Promise<void>;
+  /** The exam it was in. */
+  removePaper(id: string): Promise<{ examId: string }>;
 
-  paper(id: string): Promise<{ edit: boolean; paper: Paper }>;
+  /** `edit`: sets questions and the key; `manage`: changes or deletes the paper itself (the principal and owner). */
+  paper(id: string): Promise<{ edit: boolean; manage: boolean; paper: Paper }>;
   uploadPaper(id: string, file: Upload | null): Promise<void>;
   paperFile(id: string): Promise<Response>;
   /** Optional AI step: reads questions off the uploaded paper as a draft. Refused when questions exist unless replace. */
@@ -369,6 +401,7 @@ export interface PapersApi {
   /** The only regular AI step: drafts keys for questions without points (or one question). Never touches a saved key. */
   suggestKey(paperId: string, questionId: string | null): Promise<{ suggested: number }>;
   lockKey(paperId: string): Promise<void>;
+  /** Refused while the paper has answer scripts: their marks were given against this key. */
   unlockKey(paperId: string): Promise<void>;
 }
 
@@ -400,4 +433,35 @@ export interface CertificatesApi {
   saveTemplate(kind: CertificateKind, file: Upload | null): Promise<void>;
   /** null when the school has none for that kind. */
   template(kind: CertificateKind): Promise<Response | null>;
+}
+
+// ---- Exam & Evals: answer scripts and marks ------------------------------------------------
+
+/** A student of the class on a paper's register, with their script if one was uploaded. */
+export type ScriptRow = { id: string | null; student_id: string; student: string; admission_no: string; section: string;
+  status: EvalStatus | null; score: number | null; final_score: number | null };
+/** One question of a script: its marks, what the evaluator suggested, and the mark the teacher gave (null until confirmed). */
+export type ScriptMark = { question_id: string; number: string; section: string | null; choice_group: string | null; marks: number;
+  suggested: number | null; mark: number | null; comment: string };
+export type Script = {
+  id: string; paper_id: string; exam: string; subject: string; class_name: string; student: string; admission_no: string; section: string;
+  status: EvalStatus; max_marks: number; pages: { n: number; mime: string }[]; provider: string | null; error: string | null; evaluated_at: string | null;
+  feedback: string; confidence: string; extracted_text: string; marks: ScriptMark[]; score: number | null; final_score: number | null;
+  note: string | null; confirmed_by: string | null; confirmed_at: string | null; created_by: string; created_at: string;
+};
+
+export interface ScriptsApi {
+  /** The class's students on a locked paper, in the sections this person may see; `edit` when they may mark one of them. */
+  register(paperId: string, section?: string): Promise<{ edit: boolean; paper: PaperRow & { exam: string }; sections: Choice[]; section: string | null;
+    rows: (ScriptRow & { mine: boolean })[] }>;
+  /** Stores the pages in order and asks the evaluator; returns the script's id whatever the evaluator answered. Replaces an unconfirmed script. */
+  upload(paperId: string, studentId: string, files: Upload[]): Promise<{ id: string }>;
+  get(id: string): Promise<{ edit: boolean; script: Script }>;
+  retry(id: string): Promise<void>;
+  /** Fields m_<question id> (one per question, halves allowed) and note. The total is worked out in core. */
+  confirm(id: string, f: Form): Promise<void>;
+  reopen(id: string): Promise<void>;
+  /** Deletes an unconfirmed script and its pages. */
+  remove(id: string): Promise<{ paperId: string }>;
+  page(id: string, n: number): Promise<Response>;
 }
