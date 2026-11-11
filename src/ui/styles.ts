@@ -320,6 +320,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 .certificate-body{margin:0;font-size:11.5pt;line-height:2.1;text-align:justify}
 .certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.nowrap{white-space:nowrap}
 .slips-page{max-width:60rem}.slips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,88mm),1fr))}
 .slip{border:1px dashed var(--ink-2);background:var(--surface);color:var(--ink);padding:4mm 5mm;min-height:66mm;display:grid;gap:2mm;align-content:start;break-inside:avoid;font-size:9pt}
 .slip header{display:flex;gap:2mm;align-items:center}.slip header img{width:9mm;height:9mm;object-fit:contain}.slip header strong{display:block;font-size:10.5pt}.slip header span{display:block;font-size:7.5pt;color:var(--ink-2)}

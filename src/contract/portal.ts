@@ -186,16 +186,18 @@ export type StaffRow = { id: string; employee_no: string; name: string; designat
 export interface StaffApi {
   list(status: string): Promise<{ edit: boolean; rows: StaffRow[] }>;
   signins(): Promise<{ rows: StaffRow[]; suggested: Record<string, SchoolRole | "none">; roles: SchoolRole[]; adminLimit: number | null; adminUsers: number }>;
-  giveSignins(f: Form): Promise<void>;
+  /** `batch`: slips to print for those given a mobile-only sign-in (F-02); null when everyone got an email. */
+  giveSignins(f: Form): Promise<{ batch: string | null }>;
   newForm(): Promise<void>;
   add(f: Form): Promise<string>;
   overview(id: string): Promise<{ st: StaffRow; edit: boolean }>;
   editForm(id: string): Promise<{ st: StaffRow }>;
-  access(id: string): Promise<{ st: StaffRow; edit: boolean; showBank: boolean; roles: string[] }>;
+  access(id: string): Promise<{ st: StaffRow; edit: boolean; showBank: boolean; roles: string[]; pin: PinState | null }>;
   documents(id: string): Promise<{ st: StaffRow; edit: boolean } & Docs>;
   update(id: string, f: Form): Promise<void>;
   /** false: nothing to do (they already sign in, or were relieved). */
-  giveLogin(id: string, f: Form): Promise<boolean>;
+  /** `given` false when they already sign in or have left; `batch`: their slip, when the sign-in is by mobile. */
+  giveLogin(id: string, f: Form): Promise<{ given: boolean; batch: string | null }>;
   relieve(id: string): Promise<void>;
 }
 
@@ -475,8 +477,12 @@ export interface ScriptsApi {
 
 /** A parent on the office's sign-in slips page. `issued_at`: when a slip was last printed; `chosen_at`: when they chose their own PIN. */
 export type SlipParent = { guardian_id: string; name: string; mobile: string; children: string; email: string | null; issued_at: string | null; chosen_at: string | null };
-/** One printed slip. The PIN exists only here, for the few minutes the print page is open. */
-export type Slip = { name: string; mobile: string; pin: string; children: string[] };
+/** A staff member on the office's PIN slips list (F-02): only staff who already sign in and have a mobile. */
+export type SlipStaff = { staff_id: string; name: string; designation: string | null; mobile: string; email: string | null; issued_at: string | null; chosen_at: string | null };
+/** Whether someone signs in with a PIN: when their slip was printed, and when they chose their own. */
+export type PinState = { mobile: string; issued_at: string; chosen_at: string | null };
+/** One printed slip. The PIN exists only here, for the few minutes the print page is open. `staff`: the designation on a staff slip. */
+export type Slip = { name: string; mobile: string; pin: string; children: string[]; staff?: string };
 
 export interface PinsApi {
   /** Parents of a section, for the office (student records, edit and above). */
@@ -486,6 +492,10 @@ export interface PinsApi {
    * their sessions end. The slips are kept sealed for 15 minutes under the returned batch, to print.
    */
   print(guardianIds: string[]): Promise<{ batch: string }>;
+  /** Staff who sign in and have a mobile, for the office (staff records, edit and above). */
+  staff(): Promise<SlipStaff[]>;
+  /** A new PIN for each staff member, as `print`; only for staff who already sign in, on their own mobile. */
+  printStaff(staffIds: string[]): Promise<{ batch: string }>;
   /** null once the batch has expired, or for another school's batch. */
   slips(batch: string): Promise<{ school: string; portal: string; logo: boolean; printedBy: string; slips: Slip[] } | null>;
   /** The signed-in person chooses their own PIN. Fields: current, pin, pin2. */
