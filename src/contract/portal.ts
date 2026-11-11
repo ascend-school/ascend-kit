@@ -237,7 +237,7 @@ export interface FeesApi {
   overview(): Promise<{ dues: ({ id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[];
     recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null } | null>;
   structure(year: string | undefined): Promise<{ owner: boolean; all: Year[]; year: Year | null; classes: { id: string; name: string; n: number }[];
-    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; raised: number; collected: number }[]; counts: { year_id: string; n: number }[] } | null>;
+    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; at_admission: number; raised: number; collected: number }[]; counts: { year_id: string; n: number }[] } | null>;
   /** The year it went into. */
   addHead(f: Form): Promise<string>;
   copy(f: Form): Promise<string>;
@@ -245,9 +245,19 @@ export interface FeesApi {
   updateHead(id: string, f: Form): Promise<string>;
   removeHead(id: string): Promise<string>;
   student(id: string): Promise<{ s: StudentRow; edit: boolean; concession: Grant | null; nonce: string; money: Money | null;
-    lines: { description: string; amount_paise: number; concession_paise: number; due_on: string | null; kind: string }[]; payments: Payment[];
-    current: { percent: number; reason: string } | null; asked: { id: string; percent: number; reason: string; requester: string | null } | null }>;
+    /** `id`: a due's id (null for a carried-in balance); `removable`: a fee for this student with nothing paid against it (F-05). */
+    lines: { id: string | null; description: string; amount_paise: number; concession_paise: number; due_on: string | null; kind: string; removable: boolean }[]; payments: Payment[];
+    current: { percent: number; reason: string } | null;
+    /** An open request: a percentage, or an agreed amount when `agreed_paise` is set (F-05). */
+    asked: { id: string; percent: number; agreed_paise: number | null; reason: string; requester: string | null } | null;
+    /** The current year, the amount agreed with the family for its class fees, and those class fees before any discount (F-05). */
+    year: Year | null; agreement: { amount_paise: number; reason: string; at: string } | null; classTotal: number }>;
   concession(studentId: string, f: Form): Promise<void>;
+  /** Fields: amount (rupees; empty removes it, the owner only), reason. The owner sets it; the accountant's is a request. */
+  agree(studentId: string, f: Form): Promise<void>;
+  /** A fee for this student only, this year. Fields: head, amount (rupees), due_on. */
+  addStudentFee(studentId: string, f: Form): Promise<void>;
+  removeStudentFee(studentId: string, dueId: string): Promise<void>;
   decide(studentId: string, requestId: string, decision: "approve" | "reject"): Promise<void>;
   /** The receipt's id. */
   collect(studentId: string, f: Form): Promise<string>;
