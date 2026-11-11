@@ -321,6 +321,11 @@ details[open]>summary::before{transform:rotate(45deg)}
 .certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .nowrap{white-space:nowrap}
+.lang-switch{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .75rem}.lang-switch button{min-height:2.25rem}.lang-switch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.rail-foot .lang-switch button{color:inherit;border-color:currentColor;background:transparent}.rail-foot .lang-switch button[aria-pressed="true"]{background:var(--rail-active-bg);color:var(--rail-active-ink);border-color:var(--rail-active-bg)}
+.auth-main .lang-switch{justify-content:flex-end}
+:lang(te) body,body:lang(te){font-family:var(--font-body),"Noto Sans Telugu","Telugu Sangam MN","Nirmala UI",sans-serif;line-height:1.75}
+:lang(te) h1,:lang(te) h2,:lang(te) h3,:lang(te) h4{font-family:var(--font-display),"Noto Sans Telugu","Telugu Sangam MN","Nirmala UI",sans-serif;line-height:1.45;letter-spacing:0}
 .slips-page{max-width:60rem}.slips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,88mm),1fr))}
 .slip{border:1px dashed var(--ink-2);background:var(--surface);color:var(--ink);padding:4mm 5mm;min-height:66mm;display:grid;gap:2mm;align-content:start;break-inside:avoid;font-size:9pt}
 .slip header{display:flex;gap:2mm;align-items:center}.slip header img{width:9mm;height:9mm;object-fit:contain}.slip header strong{display:block;font-size:10.5pt}.slip header span{display:block;font-size:7.5pt;color:var(--ink-2)}

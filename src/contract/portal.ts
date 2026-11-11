@@ -6,6 +6,7 @@
 //
 
 import type { SchoolRole } from "../types.ts";
+import type { Lang } from "../i18n.ts";
 import type { SiteContent, SiteFacts, SitePhoto, SiteSnapshot } from "./site.ts";
 
 /**
@@ -25,7 +26,8 @@ export type Form = Record<string, string>;
 export type Upload = { name: string; type: string; bytes: ArrayBuffer };
 
 /** The school a portal address serves; null when nothing is served there or it is suspended. */
-export type PortalSchool = { name: string; slug: string; town: string | null; clearCookie: string };
+/** `language`: the portal's language until a person chooses their own on their phone (F-03). */
+export type PortalSchool = { name: string; slug: string; town: string | null; clearCookie: string; language: Lang };
 
 /** What the shell needs about the signed-in person, read fresh on every request. */
 export type PortalInfo = {
@@ -103,7 +105,10 @@ export interface HomeApi { data(): Promise<HomeData> }
 
 // ---- Setup: profile, calendar, holidays, classes, sections ----------------------------
 
-export type Profile = { name: string; board: string | null; affiliation_no: string | null; address: string | null; town: string | null; logo_key: string | null; working_days: string; day_starts: string | null; day_ends: string | null };
+/** What printed receipts and certificates are in (F-03, the school's choice). */
+export type PrintLanguage = "en" | "te" | "both";
+export type Profile = { name: string; board: string | null; affiliation_no: string | null; address: string | null; town: string | null; logo_key: string | null; working_days: string; day_starts: string | null; day_ends: string | null;
+  print_language: PrintLanguage; language: Lang };
 export type Year = { id: string; label: string; starts_on: string; ends_on: string; is_current: number };
 export type SectionRow = { id: string; name: string; class_id: string; class_name: string; class_teacher_id: string | null };
 export type Choice = [string, string];
@@ -243,7 +248,7 @@ export interface FeesApi {
   /** The receipt's id. */
   collect(studentId: string, f: Form): Promise<string>;
   receipt(id: string): Promise<{ p: Payment; s: StudentRow; edit: boolean; money: Money | null;
-    school: { name: string; address: string | null; town: string | null; affiliation_no: string | null; logo_key: string | null } | null }>;
+    school: { name: string; address: string | null; town: string | null; affiliation_no: string | null; logo_key: string | null; print_language: PrintLanguage } | null }>;
   cancel(id: string, reason: string, origin: string): Promise<void>;
 }
 

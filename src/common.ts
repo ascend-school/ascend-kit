@@ -8,6 +8,7 @@
 import type { HonoRequest } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { esc, html } from "./html.ts";
+import { EN, type T } from "./i18n.ts";
 import { backWays, banner, pageHead, panel, plainPage } from "./ui/kit.ts";
 
 /** What helpers need from a request, whatever variables the app declares. */
@@ -52,15 +53,19 @@ export function backHref(c: Ctx, fallback = "/"): string {
   return fallback;
 }
 
-/** An error inside an app's own shell: what happened, why, and the ways back. 500s carry a red banner; the rest don't alarm. */
-export function errorBody(d: ErrorInfo, ways: { back: string; module?: { href: string; label: string }; home?: string }): string {
-  return `${pageHead(d.heading)}${panel({ body: `<div class="stack">${d.status >= 500 ? banner("bad", esc(d.text), "alert") : `<p>${esc(d.text)}</p>`}${backWays(ways)}</div>` })}`;
+/**
+ * An error inside an app's own shell: what happened, why, and the ways back. 500s carry a red banner; the rest don't alarm.
+ * `t` (F-03): the headings and the fixed texts are in the word lists; core's own reasons read in English until they are.
+ */
+export function errorBody(d: ErrorInfo, ways: { back: string; module?: { href: string; label: string }; home?: string }, t: T = EN): string {
+  const text = esc(t(d.text));
+  return `${pageHead(t(d.heading))}${panel({ body: `<div class="stack">${d.status >= 500 ? banner("bad", text, "alert") : `<p>${text}</p>`}${backWays({ ...ways, t })}</div>` })}`;
 }
 
 /** Errors outside any shell (signed out, public sites). 401 signs out (`clearCookie`); 403 never does. */
-export function errorPage(brand: string, err: unknown, clearCookie?: string, c?: Ctx): Response {
+export function errorPage(brand: string, err: unknown, clearCookie?: string, c?: Ctx, t: T = EN): Response {
   const d = describeError(err);
   const headers: Record<string, string> = d.status === 401 && clearCookie ? { "set-cookie": clearCookie } : {};
-  const body = `<p>${esc(d.text)}</p>${backWays({ back: c ? backHref(c) : "/" })}`;
-  return html(plainPage({ title: `${d.heading} · ${brand}`, heading: d.heading, brand, body }), d.status, headers);
+  const body = `<p>${esc(t(d.text))}</p>${backWays({ back: c ? backHref(c) : "/", t })}`;
+  return html(plainPage({ title: `${t(d.heading)} · ${brand}`, heading: t(d.heading), brand, body, t }), d.status, headers);
 }
