@@ -353,6 +353,15 @@ ${field("Email", "email", { type: "email", autocomplete: "username", required: t
 ${o.devHint ? banner("warn", `Development: Firebase is not configured, so every account's password is <code>${esc(o.devHint)}</code>.`) : ""}`;
 }
 
+/** Mobile and the PIN from the school office's slip: the school portal's first sign-in form (F-01). */
+export function pinSignInForm(o: { action?: string } = {}): string {
+  return `<form class="form" method="post" action="${esc(o.action ?? "/session/pin")}">
+${field("Mobile number", "mobile", { type: "tel", autocomplete: "tel-national", inputmode: "tel", required: true, id: "pin-mobile", placeholder: "98765 43210" })}
+${field("PIN", "pin", { type: "password", autocomplete: "current-password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: 6, required: true, id: "pin-pin",
+    hint: "The 6-digit PIN on the slip from the school office. Lost it? Ask the office for a new slip." })}
+<div>${button("Sign in", { icon: "arrow" })}</div></form>`;
+}
+
 /** The marketing slideshow: served as /_ui/slides.js so the page needs no inline script. */
 export const SLIDES_SCRIPT = `(()=>{const t=document.getElementById("slides"),s=[...t.children],d=[...document.querySelectorAll("[data-slide]")],n=s.length;let i=0,hold=false;
 const mark=()=>{d.forEach((b,k)=>b.toggleAttribute("aria-current",k===i));s.forEach((x,k)=>x.inert=k!==i)};mark();

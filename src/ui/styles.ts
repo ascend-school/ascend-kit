@@ -320,6 +320,14 @@ details[open]>summary::before{transform:rotate(45deg)}
 .certificate-body{margin:0;font-size:11.5pt;line-height:2.1;text-align:justify}
 .certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.slips-page{max-width:60rem}.slips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,88mm),1fr))}
+.slip{border:1px dashed var(--ink-2);background:var(--surface);color:var(--ink);padding:4mm 5mm;min-height:66mm;display:grid;gap:2mm;align-content:start;break-inside:avoid;font-size:9pt}
+.slip header{display:flex;gap:2mm;align-items:center}.slip header img{width:9mm;height:9mm;object-fit:contain}.slip header strong{display:block;font-size:10.5pt}.slip header span{display:block;font-size:7.5pt;color:var(--ink-2)}
+.slip dl{display:grid;grid-template-columns:auto 1fr;gap:1mm 3mm;margin:0}.slip dt{color:var(--ink-2)}.slip dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.slip .slip-pin{font:700 17pt/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.18em}
+.slip ol{margin:0;padding-left:4.5mm;font-size:8pt;color:var(--ink-2)}
+.signin-email{margin-top:1.5rem;border-top:1px solid var(--line);padding-top:1rem}.signin-email summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:2.75rem;display:flex;align-items:center}
+@media print{.slips-page{max-width:none}.slips{grid-template-columns:1fr 1fr}.slip{min-height:0;height:68mm;overflow:hidden}}
 .cal{border-collapse:collapse;width:100%;min-width:36rem;table-layout:fixed}.cal th{font-size:.8rem;color:var(--ink-2);text-align:left;padding:.3rem .4rem}
 .cal td{border:1px solid var(--line);vertical-align:top;height:4.2rem;padding:.3rem .4rem;font-size:.8rem}.cal .cal-n{display:block;font-weight:600;margin-bottom:.2rem}
 .cal .cal-weekly,.cal .cal-holiday{background:var(--surface-2)}.cal .cal-off{color:var(--ink-2)}.cal .cal-blank{border:0}.cal .cal-today{outline:2px solid var(--accent);outline-offset:-2px}

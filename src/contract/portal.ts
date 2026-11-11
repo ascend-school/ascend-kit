@@ -48,6 +48,8 @@ export interface PortalApi {
   signInPage(host: string): Promise<{ hasLogo: boolean; devHint: string | null }>;
   /** Throws AppError 401 or 429. */
   signIn(a: { host: string; email: string; password: string; ip?: string }): Promise<{ setCookie: string }>;
+  /** Mobile and the PIN from the school office's slip (F-01). Throws AppError 401 or 429. */
+  pinSignIn(a: { host: string; mobile: string; pin: string; ip?: string }): Promise<{ setCookie: string }>;
   requestReset(a: { host: string; email: string; ip?: string }): Promise<void>;
   signOut(a: { host: string; cookie: string }): Promise<{ setCookie: string }>;
   logo(host: string): Promise<Response | null>;
@@ -71,6 +73,7 @@ export interface PortalSession {
   readonly exams: ExamsApi;
   readonly papers: PapersApi;
   readonly scripts: ScriptsApi;
+  readonly pins: PinsApi;
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
@@ -92,6 +95,8 @@ export type HomeData = {
   myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
   children?: ({ id: string; name: string; cls: string | null; due_on: string | null; today: string | null } & Money)[];
   notices?: Notice[];
+  /** Signed in with the PIN from the office's slip and not yet chosen their own. */
+  pinFromOffice?: boolean;
   people?: { role: SchoolRole; n: number }[];
 };
 export interface HomeApi { data(): Promise<HomeData> }
@@ -464,4 +469,25 @@ export interface ScriptsApi {
   /** Deletes an unconfirmed script and its pages. */
   remove(id: string): Promise<{ paperId: string }>;
   page(id: string, n: number): Promise<Response>;
+}
+
+// ---- Sign-in with mobile and PIN (F-01) ----------------------------------------------------
+
+/** A parent on the office's sign-in slips page. `issued_at`: when a slip was last printed; `chosen_at`: when they chose their own PIN. */
+export type SlipParent = { guardian_id: string; name: string; mobile: string; children: string; email: string | null; issued_at: string | null; chosen_at: string | null };
+/** One printed slip. The PIN exists only here, for the few minutes the print page is open. */
+export type Slip = { name: string; mobile: string; pin: string; children: string[] };
+
+export interface PinsApi {
+  /** Parents of a section, for the office (student records, edit and above). */
+  parents(section?: string): Promise<{ sections: Choice[]; section: string | null; parents: SlipParent[] }>;
+  /**
+   * A new PIN for each guardian; one without a sign-in gets one, from their mobile. Earlier PINs stop working and
+   * their sessions end. The slips are kept sealed for 15 minutes under the returned batch, to print.
+   */
+  print(guardianIds: string[]): Promise<{ batch: string }>;
+  /** null once the batch has expired, or for another school's batch. */
+  slips(batch: string): Promise<{ school: string; portal: string; logo: boolean; printedBy: string; slips: Slip[] } | null>;
+  /** The signed-in person chooses their own PIN. Fields: current, pin, pin2. */
+  change(f: Form): Promise<void>;
 }
