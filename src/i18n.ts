@@ -67,6 +67,8 @@ export const WEEKDAYS_SHORT: Record<Lang, readonly string[]> = {
   en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   te: ["సోమ", "మంగళ", "బుధ", "గురు", "శుక్ర", "శని", "ఆది"],
 };
+/** "15 January", "15 జనవరి": for sentences (WhatsApp messages), where a short month reads oddly in Telugu. */
+export const dayMonthLong = (iso: string, lang: Lang = "en") => `${Number(iso.slice(8, 10))} ${MONTHS_LONG[lang][Number(iso.slice(5, 7)) - 1]}`;
 /** "November 2026", "నవంబర్ 2026", from YYYY-MM. */
 export const monthYear = (month: string, lang: Lang = "en") => `${MONTHS_LONG[lang][Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
 

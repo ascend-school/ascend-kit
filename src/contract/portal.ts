@@ -49,9 +49,10 @@ export interface PortalApi {
   school(host: string): Promise<PortalSchool | null>;
   signInPage(host: string): Promise<{ hasLogo: boolean; devHint: string | null }>;
   /** Throws AppError 401 or 429. */
-  signIn(a: { host: string; email: string; password: string; ip?: string }): Promise<{ setCookie: string }>;
+  /** `language`: what this person chose while signed in (F-04), to bring back on a new phone; null if never. */
+  signIn(a: { host: string; email: string; password: string; ip?: string }): Promise<{ setCookie: string; language: Lang | null }>;
   /** Mobile and the PIN from the school office's slip (F-01). Throws AppError 401 or 429. */
-  pinSignIn(a: { host: string; mobile: string; pin: string; ip?: string }): Promise<{ setCookie: string }>;
+  pinSignIn(a: { host: string; mobile: string; pin: string; ip?: string }): Promise<{ setCookie: string; language: Lang | null }>;
   requestReset(a: { host: string; email: string; ip?: string }): Promise<void>;
   signOut(a: { host: string; cookie: string }): Promise<{ setCookie: string }>;
   logo(host: string): Promise<Response | null>;
@@ -61,6 +62,9 @@ export interface PortalApi {
 
 export interface PortalSession {
   info(): Promise<PortalInfo>;
+  /** The language this person chose on the switch, kept on their sign-in (F-04: WhatsApp messages to them follow it). */
+  setLanguage(lang: Lang): Promise<void>;
+  readonly whatsapp: WhatsAppApi;
   readonly home: HomeApi;
   readonly setup: SetupApi;
   readonly students: StudentsApi;
@@ -488,6 +492,19 @@ export type SlipStaff = { staff_id: string; name: string; designation: string | 
 export type PinState = { mobile: string; issued_at: string; chosen_at: string | null };
 /** One printed slip. The PIN exists only here, for the few minutes the print page is open. `staff`: the designation on a staff slip. */
 export type Slip = { name: string; mobile: string; pin: string; children: string[]; staff?: string };
+
+/** A parent a WhatsApp button goes to (F-04): first linked first. */
+export type ParentContact = { id: string; name: string; mobile: string; relation: string };
+export interface WhatsAppApi {
+  /** Each student's parents, for the buttons on receipts, the dues list and the register. Staff only. */
+  parents(studentIds: string[]): Promise<Record<string, ParentContact[]>>;
+  /**
+   * Checks the sender may send it, writes the message from the records in the parent's language, audits it, and
+   * returns the wa.me address. Fields: kind (receipt, reminder, absence, notice), id (payment, student or notice),
+   * to (the guardian, all but notice), date (absence).
+   */
+  send(f: Form): Promise<{ url: string }>;
+}
 
 export interface PinsApi {
   /** Parents of a section, for the office (student records, edit and above). */

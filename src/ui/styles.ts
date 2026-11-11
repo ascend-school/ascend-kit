@@ -321,6 +321,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 .certificate footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10mm;font-size:9pt;color:var(--ink-2)}.certificate footer .sign{border-top:1px solid var(--line);padding-top:2mm;min-width:45mm;text-align:center;color:var(--ink)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .nowrap{white-space:nowrap}
+form.wa{display:inline-flex;margin:0}form.wa button{white-space:nowrap}
 .lang-switch{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .75rem}.lang-switch button{min-height:2.25rem}.lang-switch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .rail-foot .lang-switch button{color:inherit;border-color:currentColor;background:transparent}.rail-foot .lang-switch button[aria-pressed="true"]{background:var(--rail-active-bg);color:var(--rail-active-ink);border-color:var(--rail-active-bg)}
 .auth-main .lang-switch{justify-content:flex-end}
