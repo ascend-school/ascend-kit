@@ -220,6 +220,16 @@ details[open]>summary::before{transform:rotate(45deg)}
 .modules .what{display:grid;gap:.1rem}
 .modules .what span{font-size:.85rem;color:var(--ink-2)}
 .modules li.locked .what strong{color:var(--ink-2)}
+.child-rows{list-style:none;margin:0;padding:0}
+.child-rows li{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.child-rows li:first-child{border-top:0}
+.child-rows a{display:flex;align-items:center;gap:1rem;min-height:3rem;padding:.7rem 1.15rem;color:inherit;text-decoration:none}
+.child-rows a:hover,.child-rows a:focus-visible{background:color-mix(in srgb,var(--line) 25%,transparent)}
+.child-rows a::after{content:"\\203A";margin-left:auto;font-size:1.5rem;line-height:1;color:var(--ink-2)}
+.child-rows .what{display:grid;gap:.15rem;min-width:0}
+.child-rows .what span{font-size:.85rem;color:var(--ink-2)}
+.child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
+.child-rows .what strong.due{color:var(--due)}.child-rows .what strong.paid{color:var(--paid)}.child-rows .what strong.muted{color:var(--ink-2);font-weight:500}
 .later{padding:.9rem 1.15rem;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);display:grid;gap:.35rem;font-size:.9rem}
 .later strong{font-weight:600}
 

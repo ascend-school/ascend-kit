@@ -111,7 +111,13 @@ export type HomeData = {
   /** `today`: today's receipts by mode, as the day book counts them (F-06). */
   dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals };
   myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
-  children?: ({ id: string; name: string; cls: string | null; due_on: string | null; today: string | null } & Money)[];
+  /**
+   * F-08: one card per child. `month`: this month's marked days and those attended (present or late);
+   * `receipt`: the newest paid receipt; `card`: the newest exam the child has marks in, with its percentage.
+   */
+  children?: ({ id: string; name: string; cls: string | null; section_id: string | null; due_on: string | null; today: string | null;
+    month: { days: number; attended: number }; receipt: { id: string; amount: number; paid_on: string } | null;
+    card: { exam_id: string; exam: string; percent: number } | null } & Money)[];
   notices?: Notice[];
   /** Signed in with the PIN from the office's slip and not yet chosen their own. */
   pinFromOffice?: boolean;
