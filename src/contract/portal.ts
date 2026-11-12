@@ -43,6 +43,8 @@ export type PortalInfo = {
   tiles: ModuleTile[];
   /** A reissued cookie past half the session's life, for the response. */
   refreshedCookie: string | null;
+  /** F-22: the school's own names for roles ("Correspondent" for the owner); a role not here keeps its standard name. */
+  roleNames?: Partial<Record<SchoolRole, string>>;
 };
 
 export interface PortalApi {
