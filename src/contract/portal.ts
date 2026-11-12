@@ -553,7 +553,9 @@ export interface CertificatesApi {
 
 /** A student of the class on a paper's register, with their script if one was uploaded. */
 export type ScriptRow = { id: string | null; student_id: string; student: string; admission_no: string; section: string;
-  status: EvalStatus | null; score: number | null; final_score: number | null };
+  status: EvalStatus | null; score: number | null; final_score: number | null;
+  /** F-12: the phone's id for a queued script, and whether it is being marked now (pending and claimed recently). */
+  ref?: string | null; marking?: boolean };
 /** One question of a script: its marks, what the evaluator suggested, and the mark the teacher gave (null until confirmed). */
 export type ScriptMark = { question_id: string; number: string; section: string | null; choice_group: string | null; marks: number;
   suggested: number | null; mark: number | null; comment: string };
@@ -569,7 +571,9 @@ export interface ScriptsApi {
   register(paperId: string, section?: string): Promise<{ edit: boolean; paper: PaperRow & { exam: string }; sections: Choice[]; section: string | null;
     rows: (ScriptRow & { mine: boolean })[] }>;
   /** Stores the pages in order and asks the evaluator; returns the script's id whatever the evaluator answered. Replaces an unconfirmed script. */
-  upload(paperId: string, studentId: string, files: Upload[]): Promise<{ id: string }>;
+  upload(paperId: string, studentId: string, files: Upload[], o?: { mark?: boolean; ref?: string }): Promise<{ id: string }>;
+  /** F-12: marks a queued (pending) script once, whoever asks first; reports its state either way. */
+  mark(id: string): Promise<{ id: string; status: EvalStatus; score: number | null }>;
   get(id: string): Promise<{ edit: boolean; script: Script }>;
   retry(id: string): Promise<void>;
   /** Fields m_<question id> (one per question, halves allowed) and note. The total is worked out in core. */

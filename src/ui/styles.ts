@@ -229,6 +229,12 @@ details[open]>summary::before{transform:rotate(45deg)}
 .child-rows .what{display:grid;gap:.15rem;min-width:0}
 .child-rows .what span{font-size:.85rem;color:var(--ink-2)}
 .child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
+.pq{display:grid;gap:1.25rem}.pq .take{display:grid;gap:.75rem}.pq .take .btn{justify-content:center;min-height:3rem}
+.pq-pages{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.5rem}.pq-pages li{position:relative}.pq-pages img{width:4.5rem;height:6rem;object-fit:cover;border-radius:.4rem;border:1px solid var(--line);display:block}
+.pq-pages span{position:absolute;left:.25rem;top:.25rem;background:var(--surface);border-radius:.3rem;padding:0 .3rem;font-size:.75rem;font-weight:600}
+.pq-list{list-style:none;margin:0;padding:0}.pq-list li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem 1rem;padding:.75rem 1.15rem;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.pq-list li:first-child{border-top:0}.pq-list .what{display:grid;gap:.1rem;min-width:0}.pq-list .what span{font-size:.85rem;color:var(--ink-2)}
+@media (min-width:641px){.pq .take{grid-template-columns:1fr 1fr}.pq .take>:not(.btn){grid-column:1/-1}}
 .pay{display:grid;gap:.9rem}.pay .amount{font-size:1.5rem;font-weight:700;margin:0;overflow-wrap:anywhere}.pay p.muted{margin:0;overflow-wrap:anywhere}.pay h3{margin:.5rem 0 0;font-size:1rem}
 @media (max-width:640px){.pay>div>.btn{width:100%;justify-content:center;min-height:3rem}}
 .child-rows .what strong.due{color:var(--due)}.child-rows .what strong.paid{color:var(--paid)}.child-rows .what strong.muted{color:var(--ink-2);font-weight:500}

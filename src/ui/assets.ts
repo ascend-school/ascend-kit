@@ -8,6 +8,7 @@
 import { BASE_CSS } from "./styles.ts";
 import { themeDeclarations, type Theme } from "./themes.ts";
 import { BRAND_BLUE, CREST_SMALL, SLIDES_SCRIPT, UI_SCRIPT } from "./kit.ts";
+import { QUEUE_SCRIPT } from "./queue-script.ts";
 
 /**
  * /_ui/* on every host. base.css never changes without a version bump, so it is cached
@@ -21,6 +22,10 @@ export async function uiAsset(path: string, activeTheme: () => Promise<Theme>): 
   // Scripts are files, not inline, so the security policy can allow scripts from this site only.
   if (path === "/_ui/ui.js" || path === "/_ui/slides.js") {
     return new Response(path === "/_ui/ui.js" ? UI_SCRIPT : SLIDES_SCRIPT, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
+  }
+  // F-12: the phone queue for answer scripts, on its upload page only.
+  if (path === "/_ui/queue.js") {
+    return new Response(QUEUE_SCRIPT, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
   }
   if (path === "/_ui/theme.css") {
     const theme = await activeTheme();
