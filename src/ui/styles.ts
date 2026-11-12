@@ -230,6 +230,14 @@ details[open]>summary::before{transform:rotate(45deg)}
 .child-rows .what span{font-size:.85rem;color:var(--ink-2)}
 .child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
 .photo-thumb{width:3rem;height:3.75rem;object-fit:cover;border-radius:.3rem;border:1px solid var(--line);display:block}.photo-none{width:3rem;height:3.75rem;border:1px dashed var(--line);border-radius:.3rem;display:block}form.photo-take{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0}
+.receipt-pair{max-width:190mm;margin:0 auto;display:grid}
+.receipt-half{min-height:128mm;padding:6mm 8mm;display:grid;gap:2.5mm;align-content:start;border:1px solid var(--line);background:var(--surface);color:var(--ink);break-inside:avoid}
+.receipt-half header{display:flex;justify-content:space-between;align-items:flex-start;gap:4mm}.receipt-half header div{display:grid;gap:.5mm}.receipt-half header img{width:10mm;height:10mm;object-fit:contain}
+.receipt-half header span{font-size:.8rem;color:var(--ink-2)}.receipt-half .copy{font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.75rem;border:1px solid var(--line);border-radius:1mm;padding:.5mm 2mm;white-space:nowrap}
+.receipt-half .facts-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1mm 4mm;font-size:.9rem}.receipt-half .invoice-lines{margin:0}.receipt-half .words{margin:0;font-style:italic}
+.receipt-half footer{display:flex;justify-content:space-between;align-items:flex-end;gap:4mm;margin-top:6mm;font-size:.9rem}.receipt-half footer .sign{border-top:1px solid var(--ink);padding-top:1mm;min-width:45mm;text-align:center}
+.receipt-pair .cut{border-top:1px dashed var(--ink-2);margin:3mm 0}
+@media print{.receipt-pair{max-width:none}.receipt-pair .cut{margin:2mm 0}.receipt-half{border:0;height:130mm;min-height:0;overflow:hidden}}
 .slip-page{break-inside:avoid;margin-bottom:6mm}.slip-page+.slip-page{border-top:1px dashed var(--line);padding-top:6mm}.reportcard.fb-slip{padding:6mm 8mm;gap:3mm}.reportcard.fb-slip h1{font-size:1.05rem;margin:0}.reportcard.fb-slip .remark{min-height:0;padding:2mm 3mm}.reportcard.fb-slip .sheet-table td:last-child{white-space:normal}
 .pq{display:grid;gap:1.25rem}.pq .take{display:grid;gap:.75rem}.pq .take .btn{justify-content:center;min-height:3rem}
 .pq-pages{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.5rem}.pq-pages li{position:relative}.pq-pages img{width:4.5rem;height:6rem;object-fit:cover;border-radius:.4rem;border:1px solid var(--line);display:block}

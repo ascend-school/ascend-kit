@@ -323,7 +323,8 @@ export interface FeesApi {
   decide(studentId: string, requestId: string, decision: "approve" | "reject"): Promise<void>;
   /** The receipt's id. */
   collect(studentId: string, f: Form): Promise<string>;
-  receipt(id: string): Promise<{ p: Payment; s: StudentRow; edit: boolean; money: Money | null;
+  /** `heads` (F-20): what this receipt paid, head by head (empty for a cancelled one). */
+  receipt(id: string): Promise<{ p: Payment; s: StudentRow; edit: boolean; money: Money | null; heads: { head: string; amount: number }[];
     school: { name: string; address: string | null; town: string | null; affiliation_no: string | null; logo_key: string | null; print_language: PrintLanguage } | null }>;
   cancel(id: string, reason: string, origin: string): Promise<void>;
 }
