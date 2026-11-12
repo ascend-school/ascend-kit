@@ -229,6 +229,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 .child-rows .what{display:grid;gap:.15rem;min-width:0}
 .child-rows .what span{font-size:.85rem;color:var(--ink-2)}
 .child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
+.slip-page{break-inside:avoid;margin-bottom:6mm}.slip-page+.slip-page{border-top:1px dashed var(--line);padding-top:6mm}.reportcard.fb-slip{padding:6mm 8mm;gap:3mm}.reportcard.fb-slip h1{font-size:1.05rem;margin:0}.reportcard.fb-slip .remark{min-height:0;padding:2mm 3mm}.reportcard.fb-slip .sheet-table td:last-child{white-space:normal}
 .pq{display:grid;gap:1.25rem}.pq .take{display:grid;gap:.75rem}.pq .take .btn{justify-content:center;min-height:3rem}
 .pq-pages{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.5rem}.pq-pages li{position:relative}.pq-pages img{width:4.5rem;height:6rem;object-fit:cover;border-radius:.4rem;border:1px solid var(--line);display:block}
 .pq-pages span{position:absolute;left:.25rem;top:.25rem;background:var(--surface);border-radius:.3rem;padding:0 .3rem;font-size:.75rem;font-weight:600}

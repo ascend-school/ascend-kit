@@ -568,12 +568,27 @@ export type Script = {
   note: string | null; confirmed_by: string | null; confirmed_at: string | null; created_by: string; created_at: string;
 };
 
+/**
+ * F-14: what a student and parent get once a teacher confirms a script: each question's mark and, where marks were
+ * lost, what was missed (the evaluator's comment the teacher saw when confirming); the overall feedback and the note.
+ */
+export type FeedbackSlip = { id: string; exam: string; subject: string; class_name: string; max_marks: number; total: number; confirmed_at: string | null;
+  student: { name: string; admission_no: string; section: string; roll_no: string | null };
+  lines: { number: string; marks: number | null; out_of: number; choice_group: string | null; missed: string | null }[];
+  feedback: string; note: string | null;
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null }; print_language: PrintLanguage };
 export interface ScriptsApi {
   /** The class's students on a locked paper, in the sections this person may see; `edit` when they may mark one of them. */
   register(paperId: string, section?: string): Promise<{ edit: boolean; paper: PaperRow & { exam: string }; sections: Choice[]; section: string | null;
     rows: (ScriptRow & { mine: boolean })[] }>;
   /** Stores the pages in order and asks the evaluator; returns the script's id whatever the evaluator answered. Replaces an unconfirmed script. */
   upload(paperId: string, studentId: string, files: Upload[], o?: { mark?: boolean; ref?: string }): Promise<{ id: string }>;
+  /** F-14: a confirmed script's feedback slip; staff in their sections, a parent for their own child only. */
+  slip(id: string): Promise<FeedbackSlip>;
+  /** F-14: the confirmed slips of a paper (or one section), in roll order: the class print. */
+  slips(paperId: string, section?: string): Promise<FeedbackSlip[]>;
+  /** F-14: a parent's children's slips, newest first. */
+  mySlips(): Promise<{ id: string; student: string; exam: string; subject: string; final_score: number; max_marks: number; confirmed_at: string }[]>;
   /** F-12: marks a queued (pending) script once, whoever asks first; reports its state either way. */
   mark(id: string): Promise<{ id: string; status: EvalStatus; score: number | null }>;
   get(id: string): Promise<{ edit: boolean; script: Script }>;
