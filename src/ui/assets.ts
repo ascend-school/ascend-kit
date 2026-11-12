@@ -9,6 +9,7 @@ import { BASE_CSS } from "./styles.ts";
 import { themeDeclarations, type Theme } from "./themes.ts";
 import { BRAND_BLUE, CREST_SMALL, SLIDES_SCRIPT, UI_SCRIPT } from "./kit.ts";
 import { QUEUE_SCRIPT } from "./queue-script.ts";
+import { PHOTOS_SCRIPT } from "./photos-script.ts";
 
 /**
  * /_ui/* on every host. base.css never changes without a version bump, so it is cached
@@ -24,6 +25,9 @@ export async function uiAsset(path: string, activeTheme: () => Promise<Theme>): 
     return new Response(path === "/_ui/ui.js" ? UI_SCRIPT : SLIDES_SCRIPT, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
   }
   // F-12: the phone queue for answer scripts, on its upload page only.
+  if (path === "/_ui/photos.js") { // F-16: the ID-card photo roster
+    return new Response(PHOTOS_SCRIPT, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
+  }
   if (path === "/_ui/queue.js") {
     return new Response(QUEUE_SCRIPT, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
   }

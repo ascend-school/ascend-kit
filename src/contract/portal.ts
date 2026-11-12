@@ -424,6 +424,11 @@ export interface IdCardsApi {
   sections(): Promise<Choice[]>;
   sheet(q: { staff?: string; section?: string }): Promise<{ title: string; cards: IdCard[]; year: { label: string } | null;
     school: { name: string; address: string | null; town: string | null; logo_key: string | null } | null }>;
+  /** F-16: a section's students in roll order, each with its latest photo (a document id), for photographing. */
+  photoRoster(section: string | undefined): Promise<{ sections: Choice[]; section: string | null;
+    students: { id: string; name: string; admission_no: string; roll_no: string | null; photo: string | null }[] }>;
+  /** F-16: photos named by admission number; each match becomes that student's photo, the rest come back unsaved. */
+  bulkPhotos(files: Upload[]): Promise<{ saved: { file: string; student: string; admission_no: string }[]; skipped: { file: string; why: string }[] }>;
 }
 
 // ---- Website ----------------------------------------------------------------------------
