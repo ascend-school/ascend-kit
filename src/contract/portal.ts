@@ -332,7 +332,11 @@ export interface AttendanceApi {
     { parent: true; kids: { id: string; name: string; status: Mark | null }[] }
     | { parent: false; closed: string | null; rows: { id: string; cls: string; sec: string; n: number; marked: number; absent: number }[] })>;
   section(id: string, date: string | undefined): Promise<{ date: string; s: { id: string; name: string; class_name: string }; closed: string | null; late: boolean; canMark: boolean;
-    students: { id: string; name: string; roll_no: string | null; status: Mark | null }[] }>;
+    students: { id: string; name: string; roll_no: string | null; status: Mark | null }[];
+    /** F-10: may tell absent children's parents on WhatsApp (whoever may mark, and the office). */
+    canTell: boolean }>;
+  /** F-10: every child absent that day in the sections this person may tell parents about; `marked`: marks saved that day. */
+  absent(date: string | undefined): Promise<{ date: string; marked: number; rows: { id: string; name: string; roll_no: string | null; section_id: string; cls: string }[] }>;
   mark(id: string, f: Form): Promise<{ sectionId: string; date: string }>;
   student(id: string, month: string | undefined): Promise<{ s: StudentRow; year: { label: string } | null; days: { on_date: string; status: Mark }[];
     sum: Record<Mark, number> & { days: number; percent: number | null }; month: string; weeks: (CalendarDay | null)[][] }>;
@@ -588,10 +592,11 @@ export type PinState = { mobile: string; issued_at: string; chosen_at: string | 
 export type Slip = { name: string; mobile: string; pin: string; children: string[]; staff?: string };
 
 /** A parent a WhatsApp button goes to (F-04): first linked first. */
-export type ParentContact = { id: string; name: string; mobile: string; relation: string };
+/** `sent` (F-10, when asked for): this parent's latest message of that kind for that day, and who opened it; null: not yet. */
+export type ParentContact = { id: string; name: string; mobile: string; relation: string; sent?: { at: string; by: string | null } | null };
 export interface WhatsAppApi {
   /** Each student's parents, for the buttons on receipts, the dues list and the register. Staff only. */
-  parents(studentIds: string[]): Promise<Record<string, ParentContact[]>>;
+  parents(studentIds: string[], sent?: { kind: "absence"; date: string }): Promise<Record<string, ParentContact[]>>;
   /**
    * Checks the sender may send it, writes the message from the records in the parent's language, audits it, and
    * returns the wa.me address. Fields: kind (receipt, reminder, absence, notice), id (payment, student or notice),

@@ -343,6 +343,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 @media print{.idcards-page{max-width:none}.idcard header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .nowrap{white-space:nowrap}
 form.wa{display:inline-flex;margin:0}form.wa button{white-space:nowrap}
+@media (max-width:640px){#tell td:has(form.wa){flex-basis:100%}#tell td form.wa,#tell td form.wa button{width:100%;justify-content:center;min-height:2.75rem}#tell td .cluster{display:grid;gap:.5rem}}
 .sheet-page{max-width:60rem}.sheet{background:var(--surface);color:var(--ink);padding:6mm;display:grid;gap:4mm}.sheet header h1{font-size:14pt;margin:0}.sheet header p{margin:1mm 0 0;color:var(--ink-2)}
 .sheet-table{width:100%;border-collapse:collapse;font-size:8.5pt;line-height:1.3}.sheet-table th,.sheet-table td{border-bottom:1px solid var(--line);padding:.9mm 1.5mm;text-align:left;vertical-align:top}
 .sheet-table thead th{background:var(--surface-2);font-size:8pt;text-transform:uppercase;letter-spacing:.04em}.sheet-table .r{text-align:right;font-variant-numeric:tabular-nums}.sheet-table tfoot th{border-top:2px solid var(--ink);font-weight:700}
