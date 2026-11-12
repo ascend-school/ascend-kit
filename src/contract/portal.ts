@@ -100,7 +100,7 @@ export interface PortalSession {
 
 // ---- Home ------------------------------------------------------------------------------
 
-export type HomeSection = "notices" | "setup" | "school_figures" | "people" | "academics" | "office" | "dues" | "my_classes" | "children" | "modules";
+export type HomeSection = "today" | "notices" | "setup" | "school_figures" | "people" | "academics" | "office" | "dues" | "my_classes" | "children" | "modules";
 export type HomeCounts = { students: number; staff: number; classes: number; sections: number; untaught: number; signins: number; profile: number; years: number };
 export type Money = { carried: number; raised: number; paid: number };
 export type HomeData = {
@@ -121,6 +121,12 @@ export type HomeData = {
     month: { days: number; attended: number }; receipt: { id: string; amount: number; paid_on: string } | null;
     card: { exam_id: string; exam: string; percent: number } | null } & Money)[];
   notices?: Notice[];
+  /**
+   * F-15: the owner's day, until messages go out on WhatsApp: money in by mode, receipts cancelled today (who, why) and
+   * attendance (marked, present or late, and active students).
+   */
+  today?: { date: string; totals: ModeTotals; cancelled: { id: string; number: string; amount: number; student: string; reason: string | null; by: string | null }[];
+    attendance: { marked: number; attended: number; students: number } };
   /** Signed in with the PIN from the office's slip and not yet chosen their own. */
   pinFromOffice?: boolean;
   people?: { role: SchoolRole; n: number }[];
