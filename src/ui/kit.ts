@@ -294,7 +294,7 @@ export function stops(items: Stop[]): string {
 
 // ---- Forms. ------------------------------------------------------------------------
 
-type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number };
+type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number; /** A file input that opens the phone's camera ("environment": the back one). */ capture?: string };
 
 export function field(label: string, name: string, o: FieldOpts = {}): string {
   const id = o.id ?? `f-${name}`;
@@ -302,7 +302,7 @@ export function field(label: string, name: string, o: FieldOpts = {}): string {
     o.required ? " required" : "", o.placeholder ? ` placeholder="${esc(o.placeholder)}"` : "",
     o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "", o.step ? ` step="${esc(o.step)}"` : "", o.max ? ` max="${esc(o.max)}"` : "",
     o.pattern ? ` pattern="${esc(o.pattern)}"` : "", o.inputmode ? ` inputmode="${esc(o.inputmode)}"` : "",
-    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "",
+    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "", o.capture ? ` capture="${esc(o.capture)}"` : "",
     o.hint ? ` aria-describedby="${esc(id)}-h"` : "",
   ].join("");
   return `<div class="field"><label for="${esc(id)}">${esc(label)}</label><input id="${esc(id)}" name="${esc(name)}" type="${esc(o.type ?? "text")}" value="${esc(o.value ?? "")}"${attrs}>${o.hint ? `<span class="hint" id="${esc(id)}-h">${esc(o.hint)}</span>` : ""}</div>`;

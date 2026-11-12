@@ -446,6 +446,7 @@ export const TE: Readonly<Record<string, string>> = {
   "{school}: {who} was absent on {date}. Please tell the class teacher why.": "{school}: {who} {date}న బడికి రాలేదు. కారణం క్లాస్ టీచర్‌కు చెప్పండి.",
   "Send on WhatsApp": "వాట్సాప్‌లో పంపండి",
   "Share on WhatsApp": "వాట్సాప్‌లో పంచుకోండి",
+  "Photo of the board": "బోర్డు ఫోటో",
   "WhatsApp {relation}": "{relation}కి వాట్సాప్",
   "Absent today ({n})": "ఈరోజు రాని వారు ({n})",
   "Absent on {date} ({n})": "{date}న రాని వారు ({n})",

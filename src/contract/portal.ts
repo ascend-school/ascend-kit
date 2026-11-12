@@ -656,14 +656,17 @@ export interface PinsApi {
 }
 
 /** Homework (Standard): what one section's subject teacher has set, due on a day. */
-export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number };
+/** `photo` (F-18): a photo of the board comes with it. */
+export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number; photo: number };
 
 export interface HomeworkApi {
   /** `choices` are the section-and-subject pairs this person may set, as [value, label]. */
   list(): Promise<{ canSet: boolean; rows: HomeworkRow[]; choices: [string, string][] }>;
   /** Fields: pair ("sectionId:subjectId"), due_on, body. Throws AppError 403 for a subject this person does not teach. */
-  post(f: Form): Promise<void>;
+  post(f: Form, photo?: Upload | null): Promise<void>;
   remove(id: string): Promise<void>;
+  /** F-18: the homework's photo of the board, for whoever may read that homework. */
+  photo(id: string): Promise<Response>;
 }
 
 /** Leave (Standard): a staff member's own, or a student's, with where it stands. */
