@@ -440,9 +440,11 @@ export interface WebsiteApi {
 
 export type EvalStatus = "pending" | "evaluated" | "failed" | "confirmed";
 /** One question as the evaluator marked it. */
-export type EvalQuestion = { q: string; awarded: number; max: number; comment: string };
+/** `unreadable` (F-13): the evaluator says it couldn't read this answer, rather than guessing a mark. */
+export type EvalQuestion = { q: string; awarded: number; max: number; comment: string; unreadable?: boolean };
 /** What the evaluator returns: the text it read off the sheet and the marks it suggests. */
-export type EvalResult = { extracted_text: string; questions: EvalQuestion[]; total: number; max_marks: number; feedback: string; confidence: string };
+/** `unreadable` (F-13): the evaluator couldn't read the page at all; the script fails with that reason instead of a guess. */
+export type EvalResult = { extracted_text: string; questions: EvalQuestion[]; total: number; max_marks: number; feedback: string; confidence: string; unreadable?: boolean };
 export type EvalRow = {
   id: string; title: string; status: EvalStatus; section: string; subject: string; student: string; admission_no: string;
   max_marks: number; score: number | null; final_score: number | null; created_by: string; created_at: string;

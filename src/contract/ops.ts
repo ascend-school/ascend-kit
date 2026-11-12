@@ -77,10 +77,14 @@ export interface OpsSettings {
  * Ops page did on each request: a disabled account is refused at once (401), a role without
  * the job is refused (403).
  */
+/** F-13: AI evaluations this month (India time). */
+export type OpsAiUsage = { month: string; count: number; failed: number; cost: number; priced: boolean; schools: { school_id: string; name: string; count: number; cost: number }[] };
+
 export interface OpsSession {
   info(): Promise<OpsStaff>;
   /** The Overview's figures. Demo requests only for sales, unpaid invoices only for billing; empty otherwise. */
-  overview(): Promise<{ leads: OpsLead[]; schools: OpsSchoolListRow[]; requests: OpsPlanRequest[]; unpaid: OpsInvoiceRow[] }>;
+  /** `ai` (F-13): this month's AI evaluations across schools: count, failed, cost (paise; `priced` when EVAL_COST_PAISE is set), by school. */
+  overview(): Promise<{ leads: OpsLead[]; schools: OpsSchoolListRow[]; requests: OpsPlanRequest[]; unpaid: OpsInvoiceRow[]; ai: OpsAiUsage }>;
   leads(): Promise<OpsLead[]>;
   readonly schools: OpsSchools;
   readonly invoices: OpsInvoices;
