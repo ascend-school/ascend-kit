@@ -335,6 +335,18 @@ form.wa{display:inline-flex;margin:0}form.wa button{white-space:nowrap}
 .sheet-table{width:100%;border-collapse:collapse;font-size:8.5pt;line-height:1.3}.sheet-table th,.sheet-table td{border-bottom:1px solid var(--line);padding:.9mm 1.5mm;text-align:left;vertical-align:top}
 .sheet-table thead th{background:var(--surface-2);font-size:8pt;text-transform:uppercase;letter-spacing:.04em}.sheet-table .r{text-align:right;font-variant-numeric:tabular-nums}.sheet-table tfoot th{border-top:2px solid var(--ink);font-weight:700}
 .sheet-table small{color:var(--ink-2)}@media print{.sheet-page{max-width:none}.sheet{padding:0}.sheet-table thead{display:table-header-group}.sheet-table tfoot{display:table-row-group}.sheet-table tr{break-inside:avoid}}
+.grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.marks-grid{border-collapse:separate;border-spacing:0;min-width:100%;font-size:.95rem}
+.marks-grid th,.marks-grid td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:middle;white-space:nowrap}.marks-grid thead th{background:var(--surface-2);font-size:.85rem}
+.marks-grid .sticky{position:sticky;left:0;background:var(--surface);z-index:1;min-width:8.5rem;white-space:normal}.marks-grid thead .sticky{background:var(--surface-2)}
+.marks-grid .sub{display:block;font-size:.75rem;color:var(--ink-2);font-weight:400}.grid-cell{display:inline-flex;gap:.3rem;align-items:center}
+.grid-cell input[type=text]{width:3.6rem;min-height:2.5rem;padding:.25rem .4rem;text-align:right}.grid-cell label{font-size:.8rem;display:inline-flex;gap:.15rem;align-items:center}
+.marks-grid td input[name^="r_"]{min-width:12rem;min-height:2.5rem}
+.marks-grid tbody th{font-size:.95rem;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);background:var(--surface)}.marks-grid tbody th .sub{display:inline;margin-right:.4rem;font-size:.85rem}
+.reportcard .remark{border:1px solid var(--line);border-radius:2mm;padding:3mm;min-height:18mm}.reportcard .remark p{margin:1mm 0 0}.reportcard footer{gap:6mm;flex-wrap:wrap}
+.reportcard>*{min-width:0}.reportcard .certificate-no{flex-wrap:wrap;gap:.2rem 1rem}@media (max-width:640px){.reportcard{padding:5mm;gap:4mm}.reportcard .sheet-table th{white-space:normal}.reportcard .sheet-table th,.reportcard .sheet-table td{padding:.4rem .45rem}}
+.reportcard footer>span:first-child{flex-basis:100%}.reportcard footer .sign{flex:1 1 0;min-width:0}.reportcard footer{align-items:flex-start}.marks-grid tbody tr:last-child th{border-bottom:0}
+@media print{.card-page{break-after:page}.card-page:last-child{break-after:auto}.card-page .reportcard{border:0}}
+
 .lang-switch{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .75rem}.lang-switch button{min-height:2.25rem}.lang-switch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .rail-foot .lang-switch button{color:inherit;border-color:currentColor;background:transparent}.rail-foot .lang-switch button[aria-pressed="true"]{background:var(--rail-active-bg);color:var(--rail-active-ink);border-color:var(--rail-active-bg)}
 .auth-main .lang-switch{justify-content:flex-end}

@@ -771,11 +771,20 @@ export type MarkRow = { student_id: string; name: string; admission_no: string; 
 export type ReportSummary = { sat: number; got: number; outOf: number; percent: number; passed: boolean; absent: number };
 export type ReportCard = {
   exam: { name: string; starts_on: string; ends_on: string };
-  student: { name: string; admission_no: string; section: string | null };
+  student: { name: string; admission_no: string; section: string | null; roll_no?: string | null };
   school: { name: string; address: string | null; town: string | null; logo_key: string | null };
   lines: { subject: string; marks: number | null; absent: boolean; max: number }[];
   summary: ReportSummary;
+  /** F-07: marked days and days present (or late) over the exam's year up to its last day; the class teacher's remark; the print language. */
+  attendance?: { days: number; present: number } | null; remark?: string | null; print_language?: PrintLanguage;
 };
+/** One cell of the marks grid (F-07): `ai` when it came from a confirmed answer script. */
+export type GridCell = { marks: number | null; absent: boolean; ai: boolean };
+export type MarksGrid = { exams: Choice[]; exam: string | null; sections: Choice[]; section: string | null;
+  /** `edit`: this person may mark that subject in this section. */
+  papers: { id: string; subject: string; max: number; edit: boolean }[];
+  rows: { id: string; name: string; roll_no: string | null; admission_no: string; cells: GridCell[] }[];
+  remarks: Record<string, string>; canRemark: boolean };
 
 export interface MarksApi {
   /** Staff only: the sheet for one paper and section. `canEnter` is false for a subject this person does not teach. */
@@ -789,6 +798,12 @@ export interface MarksApi {
   cards(examId?: string): Promise<{ exams: Choice[]; exam: string | null; students: { id: string; name: string; admission_no: string; section: string | null }[] }>;
   /** null when the student has no marks in that exam. */
   card(examId: string, studentId: string): Promise<ReportCard | null>;
+  /** F-07: one section's students down, the exam's subjects across. */
+  grid(q: { exam?: string; section?: string }): Promise<MarksGrid>;
+  /** Fields: exam, section, m_<paper>_<student>, a_<paper>_<student>, r_<student>. A blank cell is not entered; a bad one refuses all. */
+  saveGrid(f: Form): Promise<void>;
+  /** Every card of a section, for printing the class in one go. */
+  classCards(examId: string, sectionId: string): Promise<ReportCard[]>;
 }
 
 /** Hostel (add-on): a room, with how many places are free. */
