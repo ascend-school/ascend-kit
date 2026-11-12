@@ -230,6 +230,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 .child-rows .what span{font-size:.85rem;color:var(--ink-2)}
 .child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
 .photo-thumb{width:3rem;height:3.75rem;object-fit:cover;border-radius:.3rem;border:1px solid var(--line);display:block}.photo-none{width:3rem;height:3.75rem;border:1px dashed var(--line);border-radius:.3rem;display:block}form.photo-take{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0}
+.notice-img{display:block;max-width:100%;max-height:28rem;height:auto;border-radius:.5rem;border:1px solid var(--line)}
 .receipt-pair{max-width:190mm;margin:0 auto;display:grid}
 .receipt-half{min-height:128mm;padding:6mm 8mm;display:grid;gap:2.5mm;align-content:start;border:1px solid var(--line);background:var(--surface);color:var(--ink);break-inside:avoid}
 .receipt-half header{display:flex;justify-content:space-between;align-items:flex-start;gap:4mm}.receipt-half header div{display:grid;gap:.5mm}.receipt-half header img{width:10mm;height:10mm;object-fit:contain}

@@ -383,7 +383,9 @@ export interface TimetableApi {
 export type Audience = "all" | "staff" | "parents" | "class";
 export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number; edited_at: string | null;
   /** How many students a notice names. Zero means its whole audience; more means only their guardians. */
-  picked: number };
+  picked: number;
+  /** F-19: its photo or PDF (a printed circular), and how many parents opened it (for those who post; null for others). */
+  file_name: string | null; file_mime: string | null; opened: number | null };
 
 /** A section in the picker, and how many active students it holds. */
 export type PickSection = { id: string; label: string; n: number };
@@ -404,6 +406,10 @@ export interface NoticesApi {
   send(noticeId: string, channel: string): Promise<void>;
   /** Empty until a notice has been sent on some channel. */
   delivery(noticeId: string): Promise<NoticeDelivery[]>;
+  /** F-19: one photo or PDF on a notice; null removes it. */
+  attach(id: string, file: Upload | null): Promise<void>;
+  /** F-19: the notice's file, for whoever may see the notice. */
+  file(id: string): Promise<Response>;
 }
 
 export interface PeopleApi {
