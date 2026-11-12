@@ -97,7 +97,8 @@ export type HomeData = {
   sections: HomeSection[];
   counts: HomeCounts;
   academics?: { wing: boolean; rows: { id: string; cls: string; sec: string; teacher: string | null; n: number }[] };
-  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[] };
+  /** `today`: today's receipts by mode, as the day book counts them (F-06). */
+  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals };
   myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
   children?: ({ id: string; name: string; cls: string | null; due_on: string | null; today: string | null } & Money)[];
   notices?: Notice[];
@@ -232,10 +233,27 @@ export interface ImportsApi {
 export type PayMode = "cash" | "upi" | "bank" | "cheque";
 export type Payment = { id: string; student_id: string; fy: string; seq: number; amount_paise: number; mode: PayMode; reference: string | null; paid_on: string; note: string | null; status: "paid" | "cancelled"; cancel_reason: string | null; at: string };
 
+/** A row of the dues list (F-06): the first parent linked and the office's note. */
+export type DuesRow = { id: string; name: string; admission_no: string; roll_no: string | null; cls: string | null; due_on: string | null;
+  parent: string | null; mobile: string | null; note: string | null; promised_on: string | null } & Money;
+/** A day's receipts that count, by mode (F-06). */
+export type ModeTotals = { cash: number; upi: number; bank: number; cheque: number; total: number; count: number };
+
 export interface FeesApi {
   /** null: a narrowed grant (a parent), whose fees are on each child. */
-  overview(): Promise<{ dues: ({ id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[];
-    recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null } | null>;
+  /** `filter` (F-06): a section, and sort (oldest, owed, overdue). With a section every owing student; else the first 200. */
+  overview(filter?: { section?: string; sort?: string }): Promise<{ dues: DuesRow[];
+    recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null;
+    sections: Choice[]; section: string | null; sort: "oldest" | "owed" | "overdue"; today: string; write: boolean } | null>;
+  /** The same list as a CSV file for Excel (F-06). */
+  duesCsv(filter?: { section?: string; sort?: string }): Promise<Response>;
+  /** The office's note on a student's dues (F-06). Fields: note (empty removes it), promised_on. */
+  note(studentId: string, f: Form): Promise<void>;
+  /** A day's receipts by mode and collector, and that day's cancellations (F-06). Today unless a past date is asked. */
+  daybook(date?: string): Promise<{ date: string; today: string; totals: ModeTotals;
+    receipts: { id: string; fy: string; seq: number; at: string; student: string; amount_paise: number; mode: PayMode; collector: string | null }[];
+    byCollector: { collector: string | null; count: number; total: number }[];
+    cancelled: { id: string; fy: string; seq: number; paid_on: string; student: string; amount_paise: number; mode: PayMode; reason: string | null; by: string | null; cancelled_at: string | null }[] }>;
   structure(year: string | undefined): Promise<{ owner: boolean; all: Year[]; year: Year | null; classes: { id: string; name: string; n: number }[];
     heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; at_admission: number; raised: number; collected: number }[]; counts: { year_id: string; n: number }[] } | null>;
   /** The year it went into. */
@@ -251,7 +269,9 @@ export interface FeesApi {
     /** An open request: a percentage, or an agreed amount when `agreed_paise` is set (F-05). */
     asked: { id: string; percent: number; agreed_paise: number | null; reason: string; requester: string | null } | null;
     /** The current year, the amount agreed with the family for its class fees, and those class fees before any discount (F-05). */
-    year: Year | null; agreement: { amount_paise: number; reason: string; at: string } | null; classTotal: number }>;
+    year: Year | null; agreement: { amount_paise: number; reason: string; at: string } | null; classTotal: number;
+    /** The office's note (F-06); null for a parent. */
+    note: { note: string; promised_on: string | null; at: string } | null }>;
   concession(studentId: string, f: Form): Promise<void>;
   /** Fields: amount (rupees; empty removes it, the owner only), reason. The owner sets it; the accountant's is a request. */
   agree(studentId: string, f: Form): Promise<void>;
