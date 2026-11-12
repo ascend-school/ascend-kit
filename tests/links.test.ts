@@ -21,7 +21,8 @@ test("the address is escaped", () => {
   assert.equal(href('/x?a="b"&c'), 'href="/x?a=&quot;b&quot;&amp;c"');
 });
 
-test("only http, https, mailto, tel and relative links pass; script and data URLs become #", () => {
+test("only http, https, mailto, tel, upi and relative links pass; script and data URLs become #", () => {
+  assert.equal(href("upi://pay?pa=school@okaxis&am=2000.00"), 'href="upi://pay?pa=school@okaxis&amp;am=2000.00"');
   assert.equal(href("javascript:alert(1)"), 'href="#"');
   assert.equal(href("  JavaScript:alert(1)"), 'href="#"');
   assert.equal(href("java\tscript:alert(1)"), 'href="#"');

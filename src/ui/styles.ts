@@ -229,6 +229,8 @@ details[open]>summary::before{transform:rotate(45deg)}
 .child-rows .what{display:grid;gap:.15rem;min-width:0}
 .child-rows .what span{font-size:.85rem;color:var(--ink-2)}
 .child-rows .what strong{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
+.pay{display:grid;gap:.9rem}.pay .amount{font-size:1.5rem;font-weight:700;margin:0;overflow-wrap:anywhere}.pay p.muted{margin:0;overflow-wrap:anywhere}.pay h3{margin:.5rem 0 0;font-size:1rem}
+@media (max-width:640px){.pay>div>.btn{width:100%;justify-content:center;min-height:3rem}}
 .child-rows .what strong.due{color:var(--due)}.child-rows .what strong.paid{color:var(--paid)}.child-rows .what strong.muted{color:var(--ink-2);font-weight:500}
 .later{padding:.9rem 1.15rem;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);display:grid;gap:.35rem;font-size:.9rem}
 .later strong{font-weight:600}

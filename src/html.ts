@@ -37,12 +37,13 @@ export type Nav = { href: string; label: string }[];
 /**
  * An anchor's href. A link to another address (another portal, a school's website, a map)
  * opens in a new tab so the page the person is on stays open; a path in this portal does not.
- * Only http, https, mailto, tel and relative links pass; anything else (javascript:, data:) becomes "#".
+ * Only http, https, mailto, tel, upi and relative links pass; anything else (javascript:, data:) becomes "#".
  */
 export const href = (url: string) => {
   // Browsers drop tabs, newlines and leading spaces before reading a scheme ("java\tscript:").
   const scheme = url.replace(/[\u0000-\u0020]/g, "").match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
-  if (scheme && !["http", "https", "mailto", "tel"].includes(scheme)) return 'href="#"';
+  // upi: opens the parent's UPI app with the school's ID and the amount (F-09).
+  if (scheme && !["http", "https", "mailto", "tel", "upi"].includes(scheme)) return 'href="#"';
   return `href="${esc(url)}"${/^https?:\/\//i.test(url) ? ' target="_blank" rel="noopener"' : ""}`;
 };
 

@@ -109,7 +109,9 @@ export type HomeData = {
   counts: HomeCounts;
   academics?: { wing: boolean; rows: { id: string; cls: string; sec: string; teacher: string | null; n: number }[] };
   /** `today`: today's receipts by mode, as the day book counts them (F-06). */
-  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals };
+  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals;
+    /** F-09: UPI payments waiting for the accountant. */
+    toConfirm: number };
   myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
   /**
    * F-08: one card per child. `month`: this month's marked days and those attended (present or late);
@@ -130,7 +132,7 @@ export interface HomeApi { data(): Promise<HomeData> }
 /** What printed receipts and certificates are in (F-03, the school's choice). */
 export type PrintLanguage = "en" | "te" | "both";
 export type Profile = { name: string; board: string | null; affiliation_no: string | null; address: string | null; town: string | null; logo_key: string | null; working_days: string; day_starts: string | null; day_ends: string | null;
-  print_language: PrintLanguage; language: Lang };
+  print_language: PrintLanguage; language: Lang; upi_id: string | null };
 export type Year = { id: string; label: string; starts_on: string; ends_on: string; is_current: number };
 export type SectionRow = { id: string; name: string; class_id: string; class_name: string; class_teacher_id: string | null };
 export type Choice = [string, string];
@@ -252,6 +254,8 @@ export interface ImportsApi {
 // ---- Fees -------------------------------------------------------------------------------
 
 export type PayMode = "cash" | "upi" | "bank" | "cheque";
+/** F-09: a UPI payment a parent sent. `payment_id`: the receipt its confirmation made. */
+export type UpiClaim = { id: string; amount_paise: number; reference: string; paid_on: string; status: "pending" | "confirmed" | "rejected"; reason: string | null; payment_id: string | null; at: string };
 export type Payment = { id: string; student_id: string; fy: string; seq: number; amount_paise: number; mode: PayMode; reference: string | null; paid_on: string; note: string | null; status: "paid" | "cancelled"; cancel_reason: string | null; at: string };
 
 /** A row of the dues list (F-06): the first parent linked and the office's note. */
@@ -265,7 +269,9 @@ export interface FeesApi {
   /** `filter` (F-06): a section, and sort (oldest, owed, overdue). With a section every owing student; else the first 200. */
   overview(filter?: { section?: string; sort?: string }): Promise<{ dues: DuesRow[];
     recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null;
-    sections: Choice[]; section: string | null; sort: "oldest" | "owed" | "overdue"; today: string; write: boolean } | null>;
+    sections: Choice[]; section: string | null; sort: "oldest" | "owed" | "overdue"; today: string; write: boolean;
+    /** F-09: UPI payments parents sent, waiting for confirmation (0 for those who can't confirm). */
+    toConfirm: number } | null>;
   /** The same list as a CSV file for Excel (F-06). */
   duesCsv(filter?: { section?: string; sort?: string }): Promise<Response>;
   /** The office's note on a student's dues (F-06). Fields: note (empty removes it), promised_on. */
@@ -292,7 +298,16 @@ export interface FeesApi {
     /** The current year, the amount agreed with the family for its class fees, and those class fees before any discount (F-05). */
     year: Year | null; agreement: { amount_paise: number; reason: string; at: string } | null; classTotal: number;
     /** The office's note (F-06); null for a parent. */
-    note: { note: string; promised_on: string | null; at: string } | null }>;
+    note: { note: string; promised_on: string | null; at: string } | null;
+    /** F-09: the school's UPI ID (null: UPI payments are off), whether this person may send a claim, and this child's claims. */
+    upi: { id: string | null; payee: string; canClaim: boolean; claims: UpiClaim[] } }>;
+  /** F-09: a parent's UPI payment, waiting for the accountant. Fields: amount (rupees), reference (12-digit UTR), paid_on. */
+  claimUpi(studentId: string, f: Form): Promise<void>;
+  /** F-09: every claim waiting, oldest first; fee editors only. */
+  upiClaims(): Promise<{ rows: { id: string; student_id: string; student: string; admission_no: string; cls: string | null; amount_paise: number; reference: string; paid_on: string; at: string; sender: string | null }[] }>;
+  /** F-09: makes the numbered receipt, once. Returns its id. */
+  confirmUpi(claimId: string): Promise<string>;
+  rejectUpi(claimId: string, reason: string): Promise<void>;
   concession(studentId: string, f: Form): Promise<void>;
   /** Fields: amount (rupees; empty removes it, the owner only), reason. The owner sets it; the accountant's is a request. */
   agree(studentId: string, f: Form): Promise<void>;
