@@ -5,7 +5,9 @@
 # has, and one org secret.
 name: ci
 on:
-  push: { branches: [main] }
+  # Every branch, not only main and open pull requests: work sits on long-lived
+  # branches here, and a branch without a PR was running no checks at all.
+  push:
   pull_request:
 permissions: { contents: read }
 jobs:
