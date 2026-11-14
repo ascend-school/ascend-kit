@@ -73,6 +73,18 @@ export interface PortalSession {
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
+  readonly certificates: CertificatesApi;
+  readonly homework: HomeworkApi;
+  readonly leave: LeaveApi;
+  readonly admissions: AdmissionsApi;
+  readonly compliance: ComplianceApi;
+  readonly library: LibraryApi;
+  readonly hostel: HostelApi;
+  readonly inventory: InventoryApi;
+  readonly transport: TransportApi;
+  readonly cashbook: CashbookApi;
+  readonly payroll: PayrollApi;
+  readonly marks: MarksApi;
   readonly website: WebsiteApi;
 }
 
@@ -112,9 +124,14 @@ export interface SetupApi {
   addHoliday(f: Form): Promise<void>;
   removeHoliday(id: string): Promise<void>;
   classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null }[];
-    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[]; subjects: { class_id: string; name: string }[] }>;
+    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[];
+    subjects: { id: string; class_id: string; name: string; periods_per_week: number }[];
+    /** Working days and periods a day, so a page can weigh the quotas against the week. */
+    week: { days: number; periods: number } }>;
   addClass(f: Form): Promise<void>;
   addToClass(classId: string, what: "sections" | "subjects", f: Form): Promise<void>;
+  /** Fields p_<subjectId>, periods a week; blank or 0 means the subject is not scheduled. */
+  setSubjectPeriods(classId: string, f: Form): Promise<void>;
   section(id: string): Promise<{ edit: boolean; section: SectionRow; subjects: { id: string; name: string }[]; mapped: { subject_id: string; staff_id: string }[]; staff: Choice[] }>;
   saveSection(id: string, f: Form): Promise<void>;
 }
@@ -244,11 +261,24 @@ export type TimetableStatus = { status: "draft" | "submitted" | "approved"; note
 export type Slot = { day: number; period: number; subject_id: string; subject: string; teacher: string | null };
 export type Shape = { days: number[]; periods: number };
 
+/** One teacher in two sections at the same period. `sections` are labels, already sorted. */
+export type TimetableClash = { day: number; period: number; staff: string; sections: string[] };
+
+/** What generating a draft did: how many periods went in, and what would not fit. */
+export type Generated = { placed: number; unplaced: { subject: string; wanted: number; placed: number }[] };
+
 export interface TimetableApi {
+  /** Empty when the plan has no clash checks. School-wide, whichever version is asked for. */
+  clashes(version: "draft" | "live"): Promise<TimetableClash[]>;
+  /** Fills the section's draft from the subjects' weekly periods. Throws AppError 403 without the plan feature. */
+  generate(id: string): Promise<Generated>;
   overview(): Promise<{ grant: Grant; shape: Shape; sections: { id: string; cls: string; sec: string; status: TimetableStatus["status"] | null; note: string | null }[];
     mine: { day: number; period: number; cls: string; subject: string }[] }>;
   section(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; live: Slot[]; draft: Slot[]; st: TimetableStatus | null }>;
-  editPage(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; draft: Slot[]; live: Slot[]; subjects: { id: string; name: string }[] }>;
+  editPage(id: string): Promise<{ grant: Grant; shape: Shape; s: { id: string; name: string; class_id: string; class_name: string }; draft: Slot[]; live: Slot[];
+    subjects: { id: string; name: string; periods_per_week: number }[];
+    /** The plan includes auto-generation; the page still needs a quota set before it offers it. */
+    canGenerate: boolean }>;
   setPeriods(periods: string): Promise<void>;
   save(id: string, f: Form): Promise<void>;
   decide(id: string, action: "approve" | "return", note: string | undefined): Promise<void>;
@@ -257,12 +287,27 @@ export interface TimetableApi {
 // ---- Notices, people, promotion, ID cards ----------------------------------------------
 
 export type Audience = "all" | "staff" | "parents" | "class";
-export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number };
+export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number;
+  /** How many students a notice names. Zero means its whole audience; more means only their guardians. */
+  picked: number };
+
+/** A section in the picker, and how many active students it holds. */
+export type PickSection = { id: string; label: string; n: number };
+export type PickStudent = { id: string; name: string; admission_no: string; roll_no: string | null };
+
+/** How a notice went out on one channel. `reason` is the first failure, for the office to read. */
+export type NoticeDelivery = { channel: "sms" | "whatsapp"; summary: string; reason: string | null };
 
 export interface NoticesApi {
   list(): Promise<{ edit: boolean; notices: Notice[]; classes: { id: string; name: string }[] }>;
+  /** The students of one section, to tick for a notice meant only for them. */
+  pickPage(sectionId: string | undefined): Promise<{ sections: PickSection[]; section: PickSection | null; students: PickStudent[] }>;
   post(f: Form): Promise<void>;
   withdraw(id: string): Promise<void>;
+  /** Queues a notice to a channel and tries each send now. Sending twice adds nobody twice. */
+  send(noticeId: string, channel: string): Promise<void>;
+  /** Empty until a notice has been sent on some channel. */
+  delivery(noticeId: string): Promise<NoticeDelivery[]>;
 }
 
 export interface PeopleApi {
@@ -369,4 +414,244 @@ export interface PapersApi {
   suggestKey(paperId: string, questionId: string | null): Promise<{ suggested: number }>;
   lockKey(paperId: string): Promise<void>;
   unlockKey(paperId: string): Promise<void>;
+}
+
+/** Certificates (Standard): what the office issues from a student's own record. */
+export type CertificateKind = "bonafide" | "conduct" | "transfer";
+/** One line in the issued list. */
+export type CertificateRow = { id: string; serial: string; kind: CertificateKind; student: string; admission_no: string; at: string; issued_by: string };
+/** An issued certificate with everything its printed page shows, read from the record at print time. */
+export type Certificate = {
+  id: string; serial: string; kind: CertificateKind; at: string;
+  student: { name: string; admission_no: string; dob: string | null; gender: string | null; admission_date: string | null; section: string | null; guardian: string | null };
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null };
+  year: string | null;
+  /** The school has uploaded its own letterhead for this kind, so the built-in header is left off. */
+  template: boolean;
+};
+
+export interface CertificatesApi {
+  /** Active students matching a name or admission number; empty under two characters. */
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  recent(): Promise<CertificateRow[]>;
+  /** Issues one and returns its id. Throws AppError 403 without edit, 404 for a student out of scope. */
+  issue(a: { student: string; kind: CertificateKind }): Promise<{ id: string }>;
+  /** null when the id is not this school's. */
+  one(id: string): Promise<Certificate | null>;
+  /** Which kinds the school has uploaded a letterhead for. */
+  templates(): Promise<Record<CertificateKind, boolean>>;
+  /** A null file removes it. Throws AppError 403 without edit. */
+  saveTemplate(kind: CertificateKind, file: Upload | null): Promise<void>;
+  /** null when the school has none for that kind. */
+  template(kind: CertificateKind): Promise<Response | null>;
+}
+
+/** Homework (Standard): what one section's subject teacher has set, due on a day. */
+export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number };
+
+export interface HomeworkApi {
+  /** `choices` are the section-and-subject pairs this person may set, as [value, label]. */
+  list(): Promise<{ canSet: boolean; rows: HomeworkRow[]; choices: [string, string][] }>;
+  /** Fields: pair ("sectionId:subjectId"), due_on, body. Throws AppError 403 for a subject this person does not teach. */
+  post(f: Form): Promise<void>;
+  remove(id: string): Promise<void>;
+}
+
+/** Leave (Standard): a staff member's own, or a student's, with where it stands. */
+export type LeaveStatus = "pending" | "approved" | "declined" | "withdrawn";
+export type LeaveRow = {
+  id: string; kind: "staff" | "student"; who: string; detail: string | null;
+  from_on: string; to_on: string; reason: string; status: LeaveStatus;
+  asked_by: string; at: string; decided_by: string | null; decided_at: string | null;
+  /** The signed-in person asked for this one, so they may withdraw it. */
+  own: number;
+  /** This person may approve or decline it now. */
+  canDecide: boolean;
+};
+
+export interface LeaveApi {
+  /** `children` are students this person may ask for, as [id, name]. */
+  list(): Promise<{ rows: LeaveRow[]; canAskSelf: boolean; children: [string, string][] }>;
+  /** Fields: for ("me" or a student id), from_on, to_on, reason. */
+  ask(f: Form): Promise<void>;
+  decide(id: string, approve: boolean): Promise<void>;
+  withdraw(id: string): Promise<void>;
+}
+
+/** Admissions (Standard): one person asking about a seat, and where their enquiry stands. */
+export type AdmissionStage = "enquiry" | "applied" | "admitted" | "declined" | "enrolled";
+export type AdmissionRow = {
+  id: string; name: string; guardian: string | null; mobile: string | null;
+  status: AdmissionStage; note: string | null; at: string; moved_at: string | null;
+  class_name: string | null;
+};
+
+export interface AdmissionsApi {
+  list(): Promise<{ rows: AdmissionRow[]; classes: [string, string][]; canEdit: boolean }>;
+  /** Fields: name, guardian, mobile, class_id, note. */
+  add(f: Form): Promise<void>;
+  /** Throws AppError 400 when the stage cannot follow the current one. */
+  move(id: string, to: string): Promise<void>;
+}
+
+/** Compliance (Standard): one class's heads, as UDISE+ asks for them. */
+export type ComplianceRow = { class_name: string; boys: number; girls: number; other: number; total: number; rte: number };
+/** Where the school stands against the RTE share. */
+export type RteStatus = { rte: number; total: number; share: number; meets: boolean; shortfall: number };
+
+export interface ComplianceApi {
+  /** Counted from the records on every call; nothing is stored or filed. */
+  report(): Promise<{ year: string | null; rows: ComplianceRow[]; totals: ComplianceRow; staff: number; rte: RteStatus }>;
+}
+
+/** Library (Premium): a title on the shelf, with how many copies can be taken now. */
+export type LibraryBook = { id: string; title: string; author: string | null; code: string | null; copies: number; out: number; available: number };
+export type LoanState = "returned" | "overdue" | "due_today" | "out";
+/** One copy in a child's hands, or the record of one that came back. */
+export type LibraryLoan = {
+  id: string; title: string; student: string; admission_no: string;
+  taken_on: string; due_on: string; returned_on: string | null;
+  state: LoanState;
+  /** Days late; 0 when it is not, and 0 once returned. */
+  late: number;
+};
+
+export interface LibraryApi {
+  list(): Promise<{ canEdit: boolean; books: LibraryBook[]; loans: LibraryLoan[] }>;
+  /** Students to issue to, by name or admission number. */
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Fields: title, author, code, copies. */
+  addBook(f: Form): Promise<void>;
+  /** Fields: book, student. Throws AppError 400 when no copy is free or the child holds too many. */
+  issue(f: Form): Promise<void>;
+  giveBack(id: string): Promise<void>;
+}
+
+/** Inventory (Premium): a thing the store keeps, with the count its movements add up to. */
+export type InventoryItem = { id: string; name: string; unit: string | null; code: string | null; stock: number };
+/** One movement: positive came in, negative went out. */
+export type InventoryMove = { id: string; item: string; delta: number; note: string | null; actor: string; at: string };
+
+export interface InventoryApi {
+  list(): Promise<{ canEdit: boolean; items: InventoryItem[]; moves: InventoryMove[] }>;
+  /** Fields: name, unit, code. */
+  addItem(f: Form): Promise<void>;
+  /** Fields: item, qty, way ("in" or "out"), note. Throws AppError 400 when it would leave less than nothing. */
+  move(f: Form): Promise<void>;
+}
+
+/** Transport (Premium): a route with its stops, and how full it is. */
+export type TransportRoute = {
+  id: string; name: string; vehicle_no: string | null; driver: string | null; driver_mobile: string | null;
+  seats: number | null; taken: number;
+  /** Seats left, or null when the route has no count set. */
+  left: number | null;
+  /** The stops in order, joined for reading. */
+  stops: string;
+};
+/** One child's ride, with the driver a guardian would ring. */
+export type TransportRide = {
+  student_id: string; student: string; route: string; stop: string;
+  vehicle_no: string | null; driver: string | null; driver_mobile: string | null;
+};
+
+export interface TransportApi {
+  /** A guardian gets only their children's rides and an empty route list. */
+  list(): Promise<{ canEdit: boolean; routes: TransportRoute[]; rides: TransportRide[] }>;
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Stops to put a child on, as [id, "Route · Stop"]. */
+  stops(): Promise<[string, string][]>;
+  /** Fields: name, vehicle_no, driver, driver_mobile, seats. */
+  addRoute(f: Form): Promise<void>;
+  /** Fields: route, name, sort. */
+  addStop(f: Form): Promise<void>;
+  /** Fields: student, stop. Throws AppError 400 when the route is full. */
+  assign(f: Form): Promise<void>;
+  unassign(studentId: string): Promise<void>;
+}
+
+/** Income and expenses (Premium): one line of the cash book. */
+export type CashEntry = {
+  id: string; on_date: string; way: "in" | "out"; head: string;
+  amount_paise: number; mode: string; note: string | null;
+  /** "fees" rows are read from fee_payments and cannot be changed here. */
+  source: "book" | "fees";
+};
+
+export interface CashbookApi {
+  /** One month, "YYYY-MM"; the current month when not given. Fee collections are included, read-only. */
+  list(month?: string): Promise<{ month: string; rows: CashEntry[]; totals: { in: number; out: number; net: number }; canEdit: boolean }>;
+  /** Fields: way ("in"/"out"), on_date, head, amount (rupees), mode, note. The book is append-only. */
+  add(f: Form): Promise<void>;
+}
+
+/** Payroll (Premium): a person's monthly pay as it stands now. */
+export type StaffSalary = { staff_id: string; name: string; designation: string | null; monthly_paise: number | null };
+export type RunStatus = "draft" | "approved" | "paid";
+/** The month's run: prepared by the accountant, approved by the owner, then marked paid. */
+export type PayrollRun = { id: string; month: string; status: RunStatus; approved_by: string | null; approved_at: string | null; paid_at: string | null };
+/** One person's line in a run. The pay is as it stood when the run was opened. */
+export type PayrollLine = {
+  id: string; staff: string; designation: string | null;
+  gross_paise: number; deduction_paise: number; net_paise: number;
+  note: string | null; month: string; status: RunStatus;
+};
+
+export interface PayrollApi {
+  /** A teacher gets only their own approved and paid payslips. */
+  list(month?: string): Promise<{
+    month: string; run: PayrollRun | null; lines: PayrollLine[]; salaries: StaffSalary[];
+    canPrepare: boolean; canApprove: boolean;
+  }>;
+  /** Fields: staff, amount (rupees). */
+  setSalary(f: Form): Promise<void>;
+  /** Opens the month from the salaries as they stand. Throws AppError 400 if already open. */
+  open(month: string): Promise<void>;
+  /** Fields: amount (rupees, blank for none), note. Draft runs only. */
+  setDeduction(lineId: string, f: Form): Promise<void>;
+  /** Owner only; throws AppError 403 for anyone else. */
+  approve(runId: string): Promise<void>;
+  markPaid(runId: string): Promise<void>;
+}
+
+/** Exam marks (Standard): one student's line on a marks sheet. */
+export type MarkRow = { student_id: string; name: string; admission_no: string; marks: number | null; absent: number };
+/** What a report card adds up to. An absent paper is shown but not counted. */
+export type ReportSummary = { sat: number; got: number; outOf: number; percent: number; passed: boolean; absent: number };
+export type ReportCard = {
+  exam: { name: string; starts_on: string; ends_on: string };
+  student: { name: string; admission_no: string; section: string | null };
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null };
+  lines: { subject: string; marks: number | null; absent: boolean; max: number }[];
+  summary: ReportSummary;
+};
+
+export interface MarksApi {
+  /** Staff only: the sheet for one paper and section. `canEnter` is false for a subject this person does not teach. */
+  sheet(q: { exam?: string; paper?: string; section?: string }): Promise<{
+    exams: Choice[]; exam: string | null; papers: Choice[]; paper: string | null;
+    sections: Choice[]; section: string | null; max: number; canEnter: boolean; rows: MarkRow[];
+  }>;
+  /** Fields: paper, section, and m_<studentId> / a_<studentId> per student. Refuses the whole sheet if any mark is wrong. */
+  save(f: Form): Promise<void>;
+  /** Students whose card this person may open: a guardian's children, a teacher's sections, all for the office. */
+  cards(examId?: string): Promise<{ exams: Choice[]; exam: string | null; students: { id: string; name: string; admission_no: string; section: string | null }[] }>;
+  /** null when the student has no marks in that exam. */
+  card(examId: string, studentId: string): Promise<ReportCard | null>;
+}
+
+/** Hostel (add-on): a room, with how many places are free. */
+export type HostelRoom = { id: string; name: string; capacity: number; note: string | null; taken: number; left: number };
+/** One boarder and the room they are in. */
+export type HostelBoarder = { student_id: string; student: string; admission_no: string; room: string; from_on: string };
+
+export interface HostelApi {
+  /** A guardian gets their own children's rooms and an empty room list. */
+  list(): Promise<{ canEdit: boolean; rooms: HostelRoom[]; boarders: HostelBoarder[] }>;
+  search(q: string): Promise<{ id: string; name: string; admission_no: string; section: string | null }[]>;
+  /** Fields: name, capacity, note. */
+  addRoom(f: Form): Promise<void>;
+  /** Fields: student, room. Throws AppError 400 when the room is full. */
+  allocate(f: Form): Promise<void>;
+  release(studentId: string): Promise<void>;
 }

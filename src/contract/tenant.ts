@@ -84,6 +84,8 @@ export type DomainsPage = { school: TenantSchool; domains: DomainView[]; website
 
 /** Every method checks the school belongs to the signed-in tenant (404) and, for a change, that the caller is its owner (403). */
 export interface TenantSchools {
+  /** Every branch side by side. Reads only. */
+  group(): Promise<GroupView>;
   list(): Promise<SchoolListing[]>;
   add(s: { name: string; slug: string }): Promise<{ id: string }>;
   overview(schoolId: string): Promise<SchoolOverview>;
@@ -137,3 +139,19 @@ export interface TenantApi {
   /** null without a valid session; throws AppError 401 when the person is no longer an active member. */
   open(r: { cookie: string }): Promise<TenantSession | null>;
 }
+
+/** One branch on the group dashboard. Nulls mean not set up yet, never zero. */
+export type GroupBranch = {
+  id: string; name: string; plan: string | null;
+  students: number | null; staff: number | null; owed: number | null; collected: number | null;
+};
+/** The roll-up. `incomplete` counts branches the totals could not include. */
+export type GroupTotals = { students: number | null; staff: number | null; owed: number | null; collected: number | null; incomplete: number };
+export type GroupView = {
+  /** False when no branch's plan includes the dashboard; the page then shows nothing. */
+  shown: boolean;
+  /** First day of the month the collected figures cover. */
+  month: string;
+  branches: GroupBranch[];
+  totals: GroupTotals;
+};
