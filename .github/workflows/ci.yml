@@ -9,6 +9,9 @@ on:
   # branches here, and a branch without a PR was running no checks at all.
   push:
   pull_request:
+  # Runnable by hand. Also the only way to exercise CI while push-triggered runs
+  # are not firing for this org.
+  workflow_dispatch:
 permissions: { contents: read }
 jobs:
   check:
