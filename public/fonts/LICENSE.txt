@@ -1,0 +1,2 @@
+Anek Latin, Hind and Inter are licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
+Latin subsets from Google Fonts (fonts.gstatic.com), fetched 2026-10-16.
