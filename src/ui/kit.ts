@@ -6,6 +6,7 @@
 //
 
 import { esc, href } from "../html.ts";
+import { EN, LANGS, type Lang, type T } from "../i18n.ts";
 import { BASE_CSS } from "./styles.ts";
 
 /**
@@ -35,11 +36,13 @@ const ICONS = {
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+  back: '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
   file: '<path d="M14 2.5H6a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5z"/><path d="M14 2.5v6h6"/>',
   layers: '<path d="m12 2.5 9.5 5-9.5 5-9.5-5z"/><path d="m2.5 12 9.5 5 9.5-5"/><path d="m2.5 16.5 9.5 5 9.5-5"/>',
+  chat: '<path d="M20.5 11.5a8.5 8.5 0 0 1-12.3 7.6L3.5 20.5l1.4-4.5a8.5 8.5 0 1 1 15.6-4.5z"/>',
 } as const;
 export type IconName = keyof typeof ICONS;
 
@@ -70,6 +73,7 @@ export const UI_VERSION = [...BASE_CSS].reduce((h, ch) => Math.imul(h ^ ch.charC
  * it every form still posts; a confirmed action just skips the question.
  */
 export const UI_SCRIPT = `document.addEventListener("click",e=>{if(e.target.closest("[data-print]")){e.preventDefault();print()}});
+document.addEventListener("click",e=>{if(!e.target.closest("[data-back]")||history.length<2)return;try{if(new URL(document.referrer).host!==location.host)return}catch{return}e.preventDefault();history.back()});
 const shut=d=>{d.close();if(location.hash==="#"+d.id)history.replaceState(null,"",location.pathname+location.search)};
 const deep=document.getElementById(location.hash.slice(1));if(deep&&deep.tagName==="DIALOG")deep.showModal();
 document.addEventListener("click",e=>{const t=e.target.closest("[data-open],[data-close],[data-confirm]");
@@ -79,17 +83,20 @@ if(t.hasAttribute("data-close")){e.preventDefault();const d=t.closest("dialog");
 if(t.dataset.ok){delete t.dataset.ok;return}
 e.preventDefault();const d=document.getElementById("confirm-dialog");d.querySelector("p").textContent=t.dataset.confirm;
 d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok"){t.dataset.ok="1";t.click()}};d.showModal()});`;
-const CONFIRM_DIALOG = `<dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title"><form method="dialog" class="stack">
-<h2 id="confirm-title">Are you sure?</h2><p></p><div class="cluster modal-actions"><button value="cancel" class="quiet">Cancel</button><button value="ok" class="danger">Confirm</button></div></form></dialog>`;
+/** ui.js changes without base.css changing: its own token, so browsers fetch the new one. */
+const SCRIPT_VERSION = [...UI_SCRIPT].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261).toString(36);
+const confirmDialog = (t: T) => `<dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title"><form method="dialog" class="stack">
+<h2 id="confirm-title">${esc(t("Are you sure?"))}</h2><p></p><div class="cluster modal-actions"><button value="cancel" class="quiet">${esc(t("Cancel"))}</button><button value="ok" class="danger">${esc(t("Confirm"))}</button></div></form></dialog>`;
 
-/** `head` carries a public page's description, canonical, social and structured-data tags. */
-export function document(o: { title: string; body: string; index?: boolean; bodyAttrs?: string; head?: string }): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+/** `head` carries a public page's description, canonical, social and structured-data tags. `t`: the page's language (F-03). */
+export function document(o: { title: string; body: string; index?: boolean; bodyAttrs?: string; head?: string; t?: T }): string {
+  const t = o.t ?? EN;
+  return `<!doctype html><html lang="${t.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 ${o.index ? "" : `<meta name="robots" content="noindex">`}<title>${esc(o.title)}</title>
 <link rel="preload" href="/fonts/anek-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/_ui/theme.css"><link rel="stylesheet" href="/_ui/base.css?v=${UI_VERSION}">
 <link rel="icon" href="/_ui/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">${o.head ?? ""}</head>
-<body${o.bodyAttrs ?? ""}><a class="skip" href="#main">Skip to content</a>${o.body}${CONFIRM_DIALOG}<script src="/_ui/ui.js?v=${UI_VERSION}" defer></script></body></html>`;
+<body${o.bodyAttrs ?? ""}><a class="skip" href="#main">${esc(t("Skip to content"))}</a>${o.body}${confirmDialog(t)}<script src="/_ui/ui.js?v=${SCRIPT_VERSION}" defer></script></body></html>`;
 }
 
 
@@ -109,8 +116,8 @@ const isOnPath = (href: string, current: string) => href === current || (href !=
 export const tabs = (label: string, items: [string, string][], current: string) =>
   `<nav class="tabs" aria-label="${esc(label)}">${items.map(([to, l]) => `<a ${href(to)}${to === current ? ' aria-current="page"' : ""}>${esc(l)}</a>`).join("")}</nav>`;
 
-function localNav(l: Local, current: string): string {
-  const crumbs = l.crumbs.length > 1 ? `<nav class="crumbs" aria-label="Breadcrumb"><ol>${l.crumbs.map((c, i) =>
+function localNav(l: Local, current: string, t: T = EN): string {
+  const crumbs = l.crumbs.length > 1 ? `<nav class="crumbs" aria-label="${esc(t("Breadcrumb"))}"><ol>${l.crumbs.map((c, i) =>
     `<li>${c.href && i < l.crumbs.length - 1 ? `<a ${href(c.href)}>${esc(c.label)}</a>` : `<span aria-current="page">${esc(c.label)}</span>`}</li>`).join("")}</ol></nav>` : "";
   // the most specific tab wins, so /students/new does not also light up /students
   const owns = (t: Local["tabs"][number]) => [t.href, ...(t.also ?? [])].filter((h) => isOnPath(h, current)).reduce((n, h) => Math.max(n, h.length), -1);
@@ -131,7 +138,13 @@ export const flashHtml = (f: Flash) => (f ? banner(f.tone, esc(f.text), f.tone =
 export const schoolMark = (name: string, logo: string | null) =>
   logo ? `<img class="school-logo" src="${esc(logo)}" alt="">` : `<span class="school-initial" aria-hidden="true">${esc(name.trim().charAt(0).toUpperCase())}</span>`;
 /** The quiet credit on a school's own pages. */
-export const poweredBy = (ascendUrl: string) => `<p class="powered">Powered by <a ${href(ascendUrl)}>Ascend</a></p>`;
+export const poweredBy = (ascendUrl: string, t: T = EN) => `<p class="powered">${esc(t("Powered by"))} <a ${href(ascendUrl)}>Ascend</a></p>`;
+
+/** English or Telugu (F-03): a form post per language that comes back to `back`; the current one is pressed. */
+export type LanguageSwitch = { action: string; back: string };
+export const languageSwitch = (o: LanguageSwitch, current: Lang) =>
+  `<form class="lang-switch" method="post" action="${esc(o.action)}"><input type="hidden" name="back" value="${esc(o.back)}">${LANGS.map((l) =>
+    `<button name="lang" value="${l.code}" class="quiet sm" lang="${l.code}" aria-pressed="${l.code === current}">${esc(l.name)}</button>`).join("")}</form>`;
 
 /** The working shell: rail with brand, organisation and grouped navigation; the work area. */
 export function appShell(o: {
@@ -145,40 +158,64 @@ export function appShell(o: {
   local?: Local;
   /** Reload the page every so many seconds, while it waits on something outside (a certificate). */
   refreshSeconds?: number;
+  /** The page's language, and the switch between languages in the menu (F-03). */
+  t?: T; languages?: LanguageSwitch;
 }): string {
+  const t = o.t ?? EN;
   const isOn = (href: string) => isOnPath(href, o.current);
   const nav = o.groups.filter((g) => g.items.length).map((g) => `<div><h2>${esc(g.title)}</h2>${g.items.map((i) =>
     `<a ${href(i.href)}${isOn(i.href) ? ' aria-current="page"' : ""}>${icon(i.icon)}<span>${esc(i.label)}</span></a>`).join("")}</div>`).join("");
   const body = `<div class="app"><aside class="rail" aria-label="${esc(o.product)}">
 <a class="brand" href="/">${o.school ? schoolMark(o.product, o.school.logo) : brandMark()}<span>${esc(o.product)}</span></a>
 ${o.org ? `<div class="rail-org">${o.org.name ? `<strong>${esc(o.org.name)}</strong>` : ""}${o.org.detail ? `<span>${esc(o.org.detail)}</span>` : ""}</div>` : ""}
-<details class="menu"><summary>${icon("menu")} Menu</summary></details>
-<nav aria-label="Main">${nav}</nav>
+<details class="menu"><summary>${icon("menu")} ${esc(t("Menu"))}</summary></details>
+<nav aria-label="${esc(t("Main"))}">${nav}</nav>
 <div class="rail-foot">${o.user ? `<div><strong>${esc(o.user.name)}</strong>${o.user.detail ? esc(o.user.detail) : ""}</div>` : ""}
-${o.signoutAction ? `<form method="post" action="${esc(o.signoutAction)}"><button>${icon("logout")} Sign out</button></form>` : ""}
-${o.school ? poweredBy(o.school.poweredBy) : ""}</div>
-</aside><main class="work" id="main">${o.find ? `<form class="find" method="get" action="${esc(o.find.action)}" role="search"><label class="sr" for="find">${esc(o.find.label)}</label>${icon("search")}<input id="find" name="${esc(o.find.name)}" type="search" placeholder="${esc(o.find.label)}" value="${esc(o.find.value ?? "")}" autocomplete="off"></form>` : ""}${o.local ? localNav(o.local, o.current) : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
-  return document({ title: `${o.title} · ${o.org?.name ?? o.product}`, body, head: o.refreshSeconds ? `<meta http-equiv="refresh" content="${o.refreshSeconds}">` : undefined });
+${o.languages ? languageSwitch(o.languages, t.lang) : ""}
+${o.signoutAction ? `<form method="post" action="${esc(o.signoutAction)}"><button>${icon("logout")} ${esc(t("Sign out"))}</button></form>` : ""}
+${o.school ? poweredBy(o.school.poweredBy, t) : ""}</div>
+</aside><main class="work" id="main">${o.find ? `<form class="find" method="get" action="${esc(o.find.action)}" role="search"><label class="sr" for="find">${esc(o.find.label)}</label>${icon("search")}<input id="find" name="${esc(o.find.name)}" type="search" placeholder="${esc(o.find.label)}" value="${esc(o.find.value ?? "")}" autocomplete="off"></form>` : ""}${o.local ? localNav(o.local, o.current, t) : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
+  return document({ title: `${o.title} · ${o.org?.name ?? o.product}`, body, t, head: o.refreshSeconds ? `<meta http-equiv="refresh" content="${o.refreshSeconds}">` : undefined });
 }
 
 /** Sign-in and other doors: the organisation on one side, the form on the other. */
-export function authPage(o: { title: string; org: string; headline: string; lead: string; logoSrc?: string | null; body: string; flash?: Flash; poweredBy?: string }): string {
+export function authPage(o: { title: string; org: string; headline: string; lead: string; logoSrc?: string | null; body: string; flash?: Flash; poweredBy?: string; t?: T; languages?: LanguageSwitch }): string {
+  const t = o.t ?? EN;
   // A school's door carries the school's mark; Ascend's own doors carry Ascend's.
   const brand = o.poweredBy ? `${schoolMark(o.org, o.logoSrc ?? null)}<span>${esc(o.org)}</span>` : `${brandMark()}<span>Ascend</span>`;
   const body = `<div class="auth"><section class="auth-side"><a class="brand" href="/" style="color:inherit">${brand}</a>
-<div><h1>${esc(o.headline)}</h1><p>${esc(o.lead)}</p></div>${o.poweredBy ? poweredBy(o.poweredBy) : seal()}</section>
-<main class="auth-main" id="main">${o.logoSrc && !o.poweredBy ? `<img class="auth-logo" src="${esc(o.logoSrc)}" alt="${esc(o.org)} logo">` : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
-  return document({ title: `${o.title} · ${o.org}`, body });
+<div><h1>${esc(o.headline)}</h1><p>${esc(o.lead)}</p></div>${o.poweredBy ? poweredBy(o.poweredBy, t) : seal()}</section>
+<main class="auth-main" id="main">${o.languages ? languageSwitch(o.languages, t.lang) : ""}${o.logoSrc && !o.poweredBy ? `<img class="auth-logo" src="${esc(o.logoSrc)}" alt="${esc(o.org)} logo">` : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
+  return document({ title: `${o.title} · ${o.org}`, body, t });
 }
 
 /** The 404 every surface answers with: the brand frame, a way home, no dead end. */
-export const notFoundPage = (home = "/", label = "Go to the home page") => plainPage({ title: "Page not found · Ascend", heading: "This page does not exist",
-  body: `<p class="muted">The link may be old or mistyped.</p><p><a class="btn" ${href(home)}>${esc(label)}</a></p>` });
+/** An address nothing answers at, outside any shell. Signed-in apps show errors in their shell instead (common.ts errorBody). */
+export const notFoundPage = (home = "/", label = "Home", brand = "Ascend") => plainPage({ title: `We couldn't find that · ${brand}`, heading: "We couldn't find that", brand,
+  body: `<p>It may have been removed, or the link is old.</p>${backWays({ back: home, home, homeLabel: label })}` });
 
-/** A minimal frame for errors and notices outside any shell. */
-export function plainPage(o: { title: string; heading: string; body: string; flash?: Flash; index?: boolean }): string {
-  return document({ title: o.title, index: o.index, body: `<main class="work" id="main" style="max-width:40rem;margin:10vh auto">
-<a class="brand" href="/">${brandMark()}<span>Ascend</span></a>${flashHtml(o.flash)}<h1>${esc(o.heading)}</h1>${o.body}</main>` });
+/** The ways out of an error: Go back (history, else `back`), then the module, then home. A module that is home is dropped. */
+export function backWays(o: { back: string; module?: { href: string; label: string }; home?: string; homeLabel?: string; t?: T }): string {
+  const t = o.t ?? EN;
+  const home = o.home ?? "/";
+  const mod = o.module && o.module.href !== home ? `<a class="btn quiet" ${href(o.module.href)}>${esc(t("Back to {place}", { place: o.module.label }))}</a>` : "";
+  return `<div class="cluster"><a class="btn" ${href(o.back)} data-back>${icon("back")}${esc(t("Go back"))}</a>${mod}<a class="btn quiet" ${href(home)}>${esc(o.homeLabel ?? t("Home"))}</a></div>`;
+}
+
+/** The menu item an address sits under (longest match, never home): an error page's "Back to …" in apps without a module map. */
+export function navModule(groups: NavGroup[], path: string): { href: string; label: string } | undefined {
+  let best: NavItem | undefined;
+  for (const i of groups.flatMap((g) => g.items)) {
+    if (i.href !== "/" && (path === i.href || path.startsWith(`${i.href}/`)) && i.href.length > (best?.href.length ?? 0)) best = i;
+  }
+  return best && { href: best.href, label: best.label };
+}
+
+/** A minimal frame for errors and notices outside any shell, under the school's name or Ascend's. */
+export function plainPage(o: { title: string; heading: string; body: string; flash?: Flash; index?: boolean; brand?: string; t?: T }): string {
+  const brand = o.brand ?? "Ascend";
+  return document({ title: o.title, index: o.index, t: o.t, body: `<main class="work stack" id="main" style="max-width:40rem;margin:10vh auto">
+<a class="brand" href="/">${brandMark(brand)}<span>${esc(brand)}</span></a>${flashHtml(o.flash)}<h1>${esc(o.heading)}</h1>${o.body}</main>` });
 }
 
 // ---- Page parts. -------------------------------------------------------------------
@@ -221,8 +258,8 @@ export function register(columns: Column[], rows: string[][], empty: { title: st
 }
 
 /** Read-only facts as a definition list. Values are HTML the caller escaped; empty reads "Not given". */
-export const facts = (items: [string, string][]) =>
-  `<dl class="facts">${items.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v || '<span class="muted">Not given</span>'}</dd></div>`).join("")}</dl>`;
+export const facts = (items: [string, string][], t: T = EN) =>
+  `<dl class="facts">${items.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v || `<span class="muted">${esc(t("Not given"))}</span>`}</dd></div>`).join("")}</dl>`;
 
 /** A one-field form for a register cell: a hidden label, the input, a small button. */
 export const inlineForm = (action: string, o: { id: string; label: string; name: string; type?: string; placeholder?: string; cta: string }) =>
@@ -235,6 +272,7 @@ export const emptyState = (title: string, body?: string, action?: string) =>
 export const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en-IN")} ${n === 1 ? one : many}`;
 
 /** "16 Oct" from a date or a timestamp, the one date style status tags use. */
+/** "15 Jan"; in Telugu, use i18n's dayMonth. */
 export const shortDate = (iso: string) =>
   new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -256,15 +294,15 @@ export function stops(items: Stop[]): string {
 
 // ---- Forms. ------------------------------------------------------------------------
 
-type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; pattern?: string; inputmode?: string; accept?: string; maxlength?: number };
+type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number; /** A file input that opens the phone's camera ("environment": the back one). */ capture?: string };
 
 export function field(label: string, name: string, o: FieldOpts = {}): string {
   const id = o.id ?? `f-${name}`;
   const attrs = [
     o.required ? " required" : "", o.placeholder ? ` placeholder="${esc(o.placeholder)}"` : "",
-    o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "",
+    o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "", o.step ? ` step="${esc(o.step)}"` : "", o.max ? ` max="${esc(o.max)}"` : "",
     o.pattern ? ` pattern="${esc(o.pattern)}"` : "", o.inputmode ? ` inputmode="${esc(o.inputmode)}"` : "",
-    o.accept ? ` accept="${esc(o.accept)}"` : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "",
+    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "", o.capture ? ` capture="${esc(o.capture)}"` : "",
     o.hint ? ` aria-describedby="${esc(id)}-h"` : "",
   ].join("");
   return `<div class="field"><label for="${esc(id)}">${esc(label)}</label><input id="${esc(id)}" name="${esc(name)}" type="${esc(o.type ?? "text")}" value="${esc(o.value ?? "")}"${attrs}>${o.hint ? `<span class="hint" id="${esc(id)}-h">${esc(o.hint)}</span>` : ""}</div>`;
@@ -304,6 +342,13 @@ export const linkButton = (to: string, label: string, o: { variant?: "quiet"; sm
 export const actionForm = (action: string, label: string, o: { variant?: "quiet" | "danger"; confirm?: string; hidden?: Record<string, string> } = {}) =>
   `<form method="post" action="${esc(action)}">${Object.entries(o.hidden ?? {}).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join("")}${button(label, { variant: o.variant ?? "quiet", small: true, confirm: o.confirm })}</form>`;
 
+/** Delete, when core allows it; otherwise why not, in its place, so nobody presses a button that can only fail. */
+export const deleteOr = (action: string, label: string, confirm: string, inUse: string | null) =>
+  inUse ? `<span class="small muted">${esc(inUse)}</span>` : actionForm(action, label, { variant: "danger", confirm });
+
+/** A row's actions: the same small size, side by side, right-aligned (on phones the table becomes cards, so they still fit). */
+export const rowActions = (...actions: string[]) => `<div class="cluster" style="justify-content:flex-end;gap:.4rem;flex-wrap:nowrap">${actions.filter(Boolean).join("")}</div>`;
+
 // ---- Sign-in. ----------------------------------------------------------------------
 
 export const RESET_SENT = "If that email has an account, a link to set the password is on its way.";
@@ -312,16 +357,27 @@ export const RESET_SENT = "If that email has an account, a link to set the passw
  * Email + password, posted to our own server, which checks it against the portal's
  * Firebase project. Plain HTML: works on every host and without JavaScript.
  */
-export function signInForm(o: { action?: string; resetAction?: string; devHint?: string | null } = {}): string {
+export function signInForm(o: { action?: string; resetAction?: string; devHint?: string | null; t?: T } = {}): string {
+  const t = o.t ?? EN;
   return `<form class="form" method="post" action="${esc(o.action ?? "/session")}">
-${field("Email", "email", { type: "email", autocomplete: "username", required: true, id: "email" })}
-${field("Password", "password", { type: "password", autocomplete: "current-password", required: true, id: "password" })}
-<div>${button("Sign in", { icon: "arrow" })}</div></form>
-<details><summary>Forgot your password, or setting it for the first time?</summary>
+${field(t("Email"), "email", { type: "email", autocomplete: "username", required: true, id: "email" })}
+${field(t("Password"), "password", { type: "password", autocomplete: "current-password", required: true, id: "password" })}
+<div>${button(t("Sign in"), { icon: "arrow" })}</div></form>
+<details><summary>${esc(t("Forgot your password, or setting it for the first time?"))}</summary>
 <form class="form" method="post" action="${esc(o.resetAction ?? "/password-reset")}" style="margin-top:.8rem">
-${field("Email", "email", { type: "email", autocomplete: "username", required: true, id: "reset-email" })}
-<div>${button("Email me a link", { variant: "quiet" })}</div></form></details>
+${field(t("Email"), "email", { type: "email", autocomplete: "username", required: true, id: "reset-email" })}
+<div>${button(t("Email me a link"), { variant: "quiet" })}</div></form></details>
 ${o.devHint ? banner("warn", `Development: Firebase is not configured, so every account's password is <code>${esc(o.devHint)}</code>.`) : ""}`;
+}
+
+/** Mobile and the PIN from the school office's slip: the school portal's first sign-in form (F-01). */
+export function pinSignInForm(o: { action?: string; t?: T } = {}): string {
+  const t = o.t ?? EN;
+  return `<form class="form" method="post" action="${esc(o.action ?? "/session/pin")}">
+${field(t("Mobile number"), "mobile", { type: "tel", autocomplete: "tel-national", inputmode: "tel", required: true, id: "pin-mobile", placeholder: "98765 43210" })}
+${field(t("PIN"), "pin", { type: "password", autocomplete: "current-password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: 6, required: true, id: "pin-pin",
+    hint: t("The 6-digit PIN on the slip from the school office. Lost it? Ask the office for a new slip.") })}
+<div>${button(t("Sign in"), { icon: "arrow" })}</div></form>`;
 }
 
 /** The marketing slideshow: served as /_ui/slides.js so the page needs no inline script. */

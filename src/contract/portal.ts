@@ -6,6 +6,7 @@
 //
 
 import type { SchoolRole } from "../types.ts";
+import type { Lang } from "../i18n.ts";
 import type { SiteContent, SiteFacts, SitePhoto, SiteSnapshot } from "./site.ts";
 
 /**
@@ -25,7 +26,8 @@ export type Form = Record<string, string>;
 export type Upload = { name: string; type: string; bytes: ArrayBuffer };
 
 /** The school a portal address serves; null when nothing is served there or it is suspended. */
-export type PortalSchool = { name: string; slug: string; town: string | null; clearCookie: string };
+/** `language`: the portal's language until a person chooses their own on their phone (F-03). */
+export type PortalSchool = { name: string; slug: string; town: string | null; clearCookie: string; language: Lang };
 
 /** What the shell needs about the signed-in person, read fresh on every request. */
 export type PortalInfo = {
@@ -41,13 +43,18 @@ export type PortalInfo = {
   tiles: ModuleTile[];
   /** A reissued cookie past half the session's life, for the response. */
   refreshedCookie: string | null;
+  /** F-22: the school's own names for roles ("Correspondent" for the owner); a role not here keeps its standard name. */
+  roleNames?: Partial<Record<SchoolRole, string>>;
 };
 
 export interface PortalApi {
   school(host: string): Promise<PortalSchool | null>;
   signInPage(host: string): Promise<{ hasLogo: boolean; devHint: string | null }>;
   /** Throws AppError 401 or 429. */
-  signIn(a: { host: string; email: string; password: string; ip?: string }): Promise<{ setCookie: string }>;
+  /** `language`: what this person chose while signed in (F-04), to bring back on a new phone; null if never. */
+  signIn(a: { host: string; email: string; password: string; ip?: string }): Promise<{ setCookie: string; language: Lang | null }>;
+  /** Mobile and the PIN from the school office's slip (F-01). Throws AppError 401 or 429. */
+  pinSignIn(a: { host: string; mobile: string; pin: string; ip?: string }): Promise<{ setCookie: string; language: Lang | null }>;
   requestReset(a: { host: string; email: string; ip?: string }): Promise<void>;
   signOut(a: { host: string; cookie: string }): Promise<{ setCookie: string }>;
   logo(host: string): Promise<Response | null>;
@@ -57,6 +64,9 @@ export interface PortalApi {
 
 export interface PortalSession {
   info(): Promise<PortalInfo>;
+  /** The language this person chose on the switch, kept on their sign-in (F-04: WhatsApp messages to them follow it). */
+  setLanguage(lang: Lang): Promise<void>;
+  readonly whatsapp: WhatsAppApi;
   readonly home: HomeApi;
   readonly setup: SetupApi;
   readonly students: StudentsApi;
@@ -70,6 +80,8 @@ export interface PortalSession {
   readonly notices: NoticesApi;
   readonly exams: ExamsApi;
   readonly papers: PapersApi;
+  readonly scripts: ScriptsApi;
+  readonly pins: PinsApi;
   readonly people: PeopleApi;
   readonly promotion: PromotionApi;
   readonly idcards: IdCardsApi;
@@ -90,7 +102,7 @@ export interface PortalSession {
 
 // ---- Home ------------------------------------------------------------------------------
 
-export type HomeSection = "notices" | "setup" | "school_figures" | "people" | "academics" | "office" | "dues" | "my_classes" | "children" | "modules";
+export type HomeSection = "today" | "notices" | "setup" | "school_figures" | "people" | "academics" | "office" | "dues" | "my_classes" | "children" | "modules";
 export type HomeCounts = { students: number; staff: number; classes: number; sections: number; untaught: number; signins: number; profile: number; years: number };
 export type Money = { carried: number; raised: number; paid: number };
 export type HomeData = {
@@ -98,41 +110,74 @@ export type HomeData = {
   sections: HomeSection[];
   counts: HomeCounts;
   academics?: { wing: boolean; rows: { id: string; cls: string; sec: string; teacher: string | null; n: number }[] };
-  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[] };
+  /** `today`: today's receipts by mode, as the day book counts them (F-06). */
+  dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals;
+    /** F-09: UPI payments waiting for the accountant. */
+    toConfirm: number };
   myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
-  children?: ({ id: string; name: string; cls: string | null; due_on: string | null; today: string | null } & Money)[];
+  /**
+   * F-08: one card per child. `month`: this month's marked days and those attended (present or late);
+   * `receipt`: the newest paid receipt; `card`: the newest exam the child has marks in, with its percentage.
+   */
+  children?: ({ id: string; name: string; cls: string | null; section_id: string | null; due_on: string | null; today: string | null;
+    month: { days: number; attended: number }; receipt: { id: string; amount: number; paid_on: string } | null;
+    card: { exam_id: string; exam: string; percent: number } | null } & Money)[];
   notices?: Notice[];
+  /**
+   * F-15: the owner's day, until messages go out on WhatsApp: money in by mode, receipts cancelled today (who, why) and
+   * attendance (marked, present or late, and active students).
+   */
+  today?: { date: string; totals: ModeTotals; cancelled: { id: string; number: string; amount: number; student: string; reason: string | null; by: string | null }[];
+    attendance: { marked: number; attended: number; students: number } };
+  /** Signed in with the PIN from the office's slip and not yet chosen their own. */
+  pinFromOffice?: boolean;
   people?: { role: SchoolRole; n: number }[];
 };
 export interface HomeApi { data(): Promise<HomeData> }
 
 // ---- Setup: profile, calendar, holidays, classes, sections ----------------------------
 
-export type Profile = { name: string; board: string | null; affiliation_no: string | null; address: string | null; town: string | null; logo_key: string | null; working_days: string; day_starts: string | null; day_ends: string | null };
+/** What printed receipts and certificates are in (F-03, the school's choice). */
+export type PrintLanguage = "en" | "te" | "both";
+export type Profile = { name: string; board: string | null; affiliation_no: string | null; address: string | null; town: string | null; logo_key: string | null; working_days: string; day_starts: string | null; day_ends: string | null;
+  print_language: PrintLanguage; language: Lang; upi_id: string | null };
 export type Year = { id: string; label: string; starts_on: string; ends_on: string; is_current: number };
 export type SectionRow = { id: string; name: string; class_id: string; class_name: string; class_teacher_id: string | null };
 export type Choice = [string, string];
 
 export interface SetupApi {
   profile(): Promise<{ edit: boolean; profile: Profile | null }>;
-  calendar(): Promise<{ edit: boolean; years: Year[]; terms: { year_id: string; name: string; starts_on: string; ends_on: string }[] }>;
+  /** `in_use`: why a year or term can't be deleted (null: it can). */
+  calendar(): Promise<{ edit: boolean; years: (Year & { in_use: string | null })[]; terms: { id: string; year_id: string; name: string; starts_on: string; ends_on: string; in_use: string | null }[] }>;
   holidays(): Promise<{ edit: boolean; holidays: { id: string; name: string; starts_on: string; ends_on: string }[] }>;
   saveProfile(f: Form, logo: Upload | null): Promise<void>;
   addYear(f: Form): Promise<void>;
   makeCurrent(id: string): Promise<void>;
+  updateYear(id: string, f: Form): Promise<void>;
+  removeYear(id: string): Promise<void>;
   addTerm(f: Form): Promise<void>;
+  updateTerm(id: string, f: Form): Promise<void>;
+  removeTerm(id: string): Promise<void>;
   addHoliday(f: Form): Promise<void>;
+  updateHoliday(id: string, f: Form): Promise<void>;
   removeHoliday(id: string): Promise<void>;
-  classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null }[];
-    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number }[];
-    subjects: { id: string; class_id: string; name: string; periods_per_week: number }[];
+  /** `in_use`: why a class, section or subject can't be deleted (null: it can). Renaming is always allowed. */
+  classes(): Promise<{ edit: boolean; classes: { id: string; name: string; wing: string | null; in_use: string | null }[];
+    sections: { id: string; class_id: string; name: string; teacher: string | null; students: number; in_use: string | null }[];
+    subjects: { id: string; class_id: string; name: string; periods_per_week: number; in_use: string | null }[];
     /** Working days and periods a day, so a page can weigh the quotas against the week. */
     week: { days: number; periods: number } }>;
   addClass(f: Form): Promise<void>;
+  updateClass(id: string, f: Form): Promise<void>;
+  removeClass(id: string): Promise<void>;
   addToClass(classId: string, what: "sections" | "subjects", f: Form): Promise<void>;
+  removeSection(id: string): Promise<void>;
+  updateSubject(id: string, f: Form): Promise<void>;
+  removeSubject(id: string): Promise<void>;
   /** Fields p_<subjectId>, periods a week; blank or 0 means the subject is not scheduled. */
   setSubjectPeriods(classId: string, f: Form): Promise<void>;
   section(id: string): Promise<{ edit: boolean; section: SectionRow; subjects: { id: string; name: string }[]; mapped: { subject_id: string; staff_id: string }[]; staff: Choice[] }>;
+  /** Fields: name (optional: renames), class_teacher_id, subject_<id>. */
   saveSection(id: string, f: Form): Promise<void>;
 }
 
@@ -182,16 +227,18 @@ export type StaffRow = { id: string; employee_no: string; name: string; designat
 export interface StaffApi {
   list(status: string): Promise<{ edit: boolean; rows: StaffRow[] }>;
   signins(): Promise<{ rows: StaffRow[]; suggested: Record<string, SchoolRole | "none">; roles: SchoolRole[]; adminLimit: number | null; adminUsers: number }>;
-  giveSignins(f: Form): Promise<void>;
+  /** `batch`: slips to print for those given a mobile-only sign-in (F-02); null when everyone got an email. */
+  giveSignins(f: Form): Promise<{ batch: string | null }>;
   newForm(): Promise<void>;
   add(f: Form): Promise<string>;
   overview(id: string): Promise<{ st: StaffRow; edit: boolean }>;
   editForm(id: string): Promise<{ st: StaffRow }>;
-  access(id: string): Promise<{ st: StaffRow; edit: boolean; showBank: boolean; roles: string[] }>;
+  access(id: string): Promise<{ st: StaffRow; edit: boolean; showBank: boolean; roles: string[]; pin: PinState | null }>;
   documents(id: string): Promise<{ st: StaffRow; edit: boolean } & Docs>;
   update(id: string, f: Form): Promise<void>;
   /** false: nothing to do (they already sign in, or were relieved). */
-  giveLogin(id: string, f: Form): Promise<boolean>;
+  /** `given` false when they already sign in or have left; `batch`: their slip, when the sign-in is by mobile. */
+  giveLogin(id: string, f: Form): Promise<{ given: boolean; batch: string | null }>;
   relieve(id: string): Promise<void>;
 }
 
@@ -215,27 +262,72 @@ export interface ImportsApi {
 // ---- Fees -------------------------------------------------------------------------------
 
 export type PayMode = "cash" | "upi" | "bank" | "cheque";
+/** F-09: a UPI payment a parent sent. `payment_id`: the receipt its confirmation made. */
+export type UpiClaim = { id: string; amount_paise: number; reference: string; paid_on: string; status: "pending" | "confirmed" | "rejected"; reason: string | null; payment_id: string | null; at: string };
 export type Payment = { id: string; student_id: string; fy: string; seq: number; amount_paise: number; mode: PayMode; reference: string | null; paid_on: string; note: string | null; status: "paid" | "cancelled"; cancel_reason: string | null; at: string };
+
+/** A row of the dues list (F-06): the first parent linked and the office's note. */
+export type DuesRow = { id: string; name: string; admission_no: string; roll_no: string | null; cls: string | null; due_on: string | null;
+  parent: string | null; mobile: string | null; note: string | null; promised_on: string | null } & Money;
+/** A day's receipts that count, by mode (F-06). */
+export type ModeTotals = { cash: number; upi: number; bank: number; cheque: number; total: number; count: number };
 
 export interface FeesApi {
   /** null: a narrowed grant (a parent), whose fees are on each child. */
-  overview(): Promise<{ dues: ({ id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[];
-    recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null } | null>;
+  /** `filter` (F-06): a section, and sort (oldest, owed, overdue). With a section every owing student; else the first 200. */
+  overview(filter?: { section?: string; sort?: string }): Promise<{ dues: DuesRow[];
+    recent: (Payment & { name: string })[]; totals: { month: number | null; today: number } | null;
+    sections: Choice[]; section: string | null; sort: "oldest" | "owed" | "overdue"; today: string; write: boolean;
+    /** F-09: UPI payments parents sent, waiting for confirmation (0 for those who can't confirm). */
+    toConfirm: number } | null>;
+  /** The same list as a CSV file for Excel (F-06). */
+  duesCsv(filter?: { section?: string; sort?: string }): Promise<Response>;
+  /** The office's note on a student's dues (F-06). Fields: note (empty removes it), promised_on. */
+  note(studentId: string, f: Form): Promise<void>;
+  /** A day's receipts by mode and collector, and that day's cancellations (F-06). Today unless a past date is asked. */
+  daybook(date?: string): Promise<{ date: string; today: string; totals: ModeTotals;
+    receipts: { id: string; fy: string; seq: number; at: string; student: string; amount_paise: number; mode: PayMode; collector: string | null }[];
+    byCollector: { collector: string | null; count: number; total: number }[];
+    cancelled: { id: string; fy: string; seq: number; paid_on: string; student: string; amount_paise: number; mode: PayMode; reason: string | null; by: string | null; cancelled_at: string | null }[] }>;
   structure(year: string | undefined): Promise<{ owner: boolean; all: Year[]; year: Year | null; classes: { id: string; name: string; n: number }[];
-    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; raised: number }[]; counts: { year_id: string; n: number }[] } | null>;
+    heads: { id: string; class_id: string; head: string; amount_paise: number; due_on: string | null; at_admission: number; raised: number; collected: number }[]; counts: { year_id: string; n: number }[] } | null>;
   /** The year it went into. */
   addHead(f: Form): Promise<string>;
   copy(f: Form): Promise<string>;
+  /** Name and due date always; the amount only until money is collected against the head. The year it is in. */
+  updateHead(id: string, f: Form): Promise<string>;
   removeHead(id: string): Promise<string>;
   student(id: string): Promise<{ s: StudentRow; edit: boolean; concession: Grant | null; nonce: string; money: Money | null;
-    lines: { description: string; amount_paise: number; concession_paise: number; due_on: string | null; kind: string }[]; payments: Payment[];
-    current: { percent: number; reason: string } | null; asked: { id: string; percent: number; reason: string; requester: string | null } | null }>;
+    /** `id`: a due's id (null for a carried-in balance); `removable`: a fee for this student with nothing paid against it (F-05). */
+    lines: { id: string | null; description: string; amount_paise: number; concession_paise: number; due_on: string | null; kind: string; removable: boolean }[]; payments: Payment[];
+    current: { percent: number; reason: string } | null;
+    /** An open request: a percentage, or an agreed amount when `agreed_paise` is set (F-05). */
+    asked: { id: string; percent: number; agreed_paise: number | null; reason: string; requester: string | null } | null;
+    /** The current year, the amount agreed with the family for its class fees, and those class fees before any discount (F-05). */
+    year: Year | null; agreement: { amount_paise: number; reason: string; at: string } | null; classTotal: number;
+    /** The office's note (F-06); null for a parent. */
+    note: { note: string; promised_on: string | null; at: string } | null;
+    /** F-09: the school's UPI ID (null: UPI payments are off), whether this person may send a claim, and this child's claims. */
+    upi: { id: string | null; payee: string; canClaim: boolean; claims: UpiClaim[] } }>;
+  /** F-09: a parent's UPI payment, waiting for the accountant. Fields: amount (rupees), reference (12-digit UTR), paid_on. */
+  claimUpi(studentId: string, f: Form): Promise<void>;
+  /** F-09: every claim waiting, oldest first; fee editors only. */
+  upiClaims(): Promise<{ rows: { id: string; student_id: string; student: string; admission_no: string; cls: string | null; amount_paise: number; reference: string; paid_on: string; at: string; sender: string | null }[] }>;
+  /** F-09: makes the numbered receipt, once. Returns its id. */
+  confirmUpi(claimId: string): Promise<string>;
+  rejectUpi(claimId: string, reason: string): Promise<void>;
   concession(studentId: string, f: Form): Promise<void>;
+  /** Fields: amount (rupees; empty removes it, the owner only), reason. The owner sets it; the accountant's is a request. */
+  agree(studentId: string, f: Form): Promise<void>;
+  /** A fee for this student only, this year. Fields: head, amount (rupees), due_on. */
+  addStudentFee(studentId: string, f: Form): Promise<void>;
+  removeStudentFee(studentId: string, dueId: string): Promise<void>;
   decide(studentId: string, requestId: string, decision: "approve" | "reject"): Promise<void>;
   /** The receipt's id. */
   collect(studentId: string, f: Form): Promise<string>;
-  receipt(id: string): Promise<{ p: Payment; s: StudentRow; edit: boolean; money: Money | null;
-    school: { name: string; address: string | null; town: string | null; affiliation_no: string | null; logo_key: string | null } | null }>;
+  /** `heads` (F-20): what this receipt paid, head by head (empty for a cancelled one). */
+  receipt(id: string): Promise<{ p: Payment; s: StudentRow; edit: boolean; money: Money | null; heads: { head: string; amount: number }[];
+    school: { name: string; address: string | null; town: string | null; affiliation_no: string | null; logo_key: string | null; print_language: PrintLanguage } | null }>;
   cancel(id: string, reason: string, origin: string): Promise<void>;
 }
 
@@ -249,7 +341,11 @@ export interface AttendanceApi {
     { parent: true; kids: { id: string; name: string; status: Mark | null }[] }
     | { parent: false; closed: string | null; rows: { id: string; cls: string; sec: string; n: number; marked: number; absent: number }[] })>;
   section(id: string, date: string | undefined): Promise<{ date: string; s: { id: string; name: string; class_name: string }; closed: string | null; late: boolean; canMark: boolean;
-    students: { id: string; name: string; roll_no: string | null; status: Mark | null }[] }>;
+    students: { id: string; name: string; roll_no: string | null; status: Mark | null }[];
+    /** F-10: may tell absent children's parents on WhatsApp (whoever may mark, and the office). */
+    canTell: boolean }>;
+  /** F-10: every child absent that day in the sections this person may tell parents about; `marked`: marks saved that day. */
+  absent(date: string | undefined): Promise<{ date: string; marked: number; rows: { id: string; name: string; roll_no: string | null; section_id: string; cls: string }[] }>;
   mark(id: string, f: Form): Promise<{ sectionId: string; date: string }>;
   student(id: string, month: string | undefined): Promise<{ s: StudentRow; year: { label: string } | null; days: { on_date: string; status: Mark }[];
     sum: Record<Mark, number> & { days: number; percent: number | null }; month: string; weeks: (CalendarDay | null)[][] }>;
@@ -287,9 +383,11 @@ export interface TimetableApi {
 // ---- Notices, people, promotion, ID cards ----------------------------------------------
 
 export type Audience = "all" | "staff" | "parents" | "class";
-export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number;
+export type Notice = { id: string; title: string; body: string; audience: Audience; class_name: string | null; author: string; at: string; withdrawn: number; edited_at: string | null;
   /** How many students a notice names. Zero means its whole audience; more means only their guardians. */
-  picked: number };
+  picked: number;
+  /** F-19: its photo or PDF (a printed circular), and how many parents opened it (for those who post; null for others). */
+  file_name: string | null; file_mime: string | null; opened: number | null };
 
 /** A section in the picker, and how many active students it holds. */
 export type PickSection = { id: string; label: string; n: number };
@@ -303,11 +401,17 @@ export interface NoticesApi {
   /** The students of one section, to tick for a notice meant only for them. */
   pickPage(sectionId: string | undefined): Promise<{ sections: PickSection[]; section: PickSection | null; students: PickStudent[] }>;
   post(f: Form): Promise<void>;
+  /** Title and text of a notice still up; it then shows as edited. */
+  edit(id: string, f: Form): Promise<void>;
   withdraw(id: string): Promise<void>;
   /** Queues a notice to a channel and tries each send now. Sending twice adds nobody twice. */
   send(noticeId: string, channel: string): Promise<void>;
   /** Empty until a notice has been sent on some channel. */
   delivery(noticeId: string): Promise<NoticeDelivery[]>;
+  /** F-19: one photo or PDF on a notice; null removes it. */
+  attach(id: string, file: Upload | null): Promise<void>;
+  /** F-19: the notice's file, for whoever may see the notice. */
+  file(id: string): Promise<Response>;
 }
 
 export interface PeopleApi {
@@ -329,6 +433,11 @@ export interface IdCardsApi {
   sections(): Promise<Choice[]>;
   sheet(q: { staff?: string; section?: string }): Promise<{ title: string; cards: IdCard[]; year: { label: string } | null;
     school: { name: string; address: string | null; town: string | null; logo_key: string | null } | null }>;
+  /** F-16: a section's students in roll order, each with its latest photo (a document id), for photographing. */
+  photoRoster(section: string | undefined): Promise<{ sections: Choice[]; section: string | null;
+    students: { id: string; name: string; admission_no: string; roll_no: string | null; photo: string | null }[] }>;
+  /** F-16: photos named by admission number; each match becomes that student's photo, the rest come back unsaved. */
+  bulkPhotos(files: Upload[]): Promise<{ saved: { file: string; student: string; admission_no: string }[]; skipped: { file: string; why: string }[] }>;
 }
 
 // ---- Website ----------------------------------------------------------------------------
@@ -351,9 +460,11 @@ export interface WebsiteApi {
 
 export type EvalStatus = "pending" | "evaluated" | "failed" | "confirmed";
 /** One question as the evaluator marked it. */
-export type EvalQuestion = { q: string; awarded: number; max: number; comment: string };
+/** `unreadable` (F-13): the evaluator says it couldn't read this answer, rather than guessing a mark. */
+export type EvalQuestion = { q: string; awarded: number; max: number; comment: string; unreadable?: boolean };
 /** What the evaluator returns: the text it read off the sheet and the marks it suggests. */
-export type EvalResult = { extracted_text: string; questions: EvalQuestion[]; total: number; max_marks: number; feedback: string; confidence: string };
+/** `unreadable` (F-13): the evaluator couldn't read the page at all; the script fails with that reason instead of a guess. */
+export type EvalResult = { extracted_text: string; questions: EvalQuestion[]; total: number; max_marks: number; feedback: string; confidence: string; unreadable?: boolean };
 export type EvalRow = {
   id: string; title: string; status: EvalStatus; section: string; subject: string; student: string; admission_no: string;
   max_marks: number; score: number | null; final_score: number | null; created_by: string; created_at: string;
@@ -373,6 +484,8 @@ export interface ExamsApi {
   get(id: string): Promise<{ edit: boolean; eval: Eval }>;
   retry(id: string): Promise<void>;
   confirm(id: string, f: Form): Promise<void>;
+  /** Deletes an eval that isn't confirmed, with its photo. */
+  remove(id: string): Promise<void>;
   image(id: string): Promise<Response>;
 }
 
@@ -381,7 +494,9 @@ export interface ExamsApi {
 export type SyllabusFile = { id: string; subject_id: string; subject: string; class_name: string; title: string; file_name: string; mime: string; uploaded_by: string; at: string };
 export type ExamRow = { id: string; name: string; term: string | null; starts_on: string; ends_on: string; papers: number; locked: number };
 export type PaperRow = { id: string; exam_id: string; subject_id: string; subject: string; class_name: string; exam_date: string | null; max_marks: number;
-  has_paper: number; questions: number; total: number; key_locked_at: string | null };
+  has_paper: number; questions: number; total: number; key_locked_at: string | null;
+  /** Why the paper can't be edited or deleted now (null: it can). */
+  in_use: string | null };
 export type KeyPoint = { id: string; text: string; marks: number; suggested: number };
 export type Question = { id: string; seq: number; number: string; section: string | null; text: string; marks: number; choice_group: string | null;
   answer: string | null; suggested: number; points: KeyPoint[] };
@@ -393,15 +508,24 @@ export type Paper = PaperRow & { exam: string; paper_name: string | null; read_e
 export interface PapersApi {
   syllabus(): Promise<{ edit: boolean; year: string | null; files: SyllabusFile[]; subjects: Choice[] }>;
   addSyllabus(subjectId: string, title: string, file: Upload | null): Promise<void>;
+  renameSyllabus(id: string, title: string): Promise<void>;
   removeSyllabus(id: string): Promise<void>;
   syllabusFile(id: string): Promise<Response>;
 
   exams(): Promise<{ create: boolean; exams: ExamRow[]; terms: Choice[] }>;
   createExam(f: Form): Promise<{ id: string }>;
-  exam(id: string): Promise<{ create: boolean; exam: ExamRow; papers: (PaperRow & { mine: boolean })[]; subjects: Choice[] }>;
+  /** `in_use`: why the exam can't be deleted (null: it can, with its papers' drafts). */
+  exam(id: string): Promise<{ create: boolean; exam: ExamRow & { term_id: string | null; in_use: string | null }; papers: (PaperRow & { mine: boolean })[]; subjects: Choice[]; terms: Choice[] }>;
+  updateExam(id: string, f: Form): Promise<void>;
+  removeExam(id: string): Promise<void>;
   addPaper(examId: string, f: Form): Promise<{ id: string }>;
+  /** Maximum marks and date, while the key is unlocked. */
+  updatePaper(id: string, f: Form): Promise<void>;
+  /** The exam it was in. */
+  removePaper(id: string): Promise<{ examId: string }>;
 
-  paper(id: string): Promise<{ edit: boolean; paper: Paper }>;
+  /** `edit`: sets questions and the key; `manage`: changes or deletes the paper itself (the principal and owner). */
+  paper(id: string): Promise<{ edit: boolean; manage: boolean; paper: Paper }>;
   uploadPaper(id: string, file: Upload | null): Promise<void>;
   paperFile(id: string): Promise<Response>;
   /** Optional AI step: reads questions off the uploaded paper as a draft. Refused when questions exist unless replace. */
@@ -413,6 +537,7 @@ export interface PapersApi {
   /** The only regular AI step: drafts keys for questions without points (or one question). Never touches a saved key. */
   suggestKey(paperId: string, questionId: string | null): Promise<{ suggested: number }>;
   lockKey(paperId: string): Promise<void>;
+  /** Refused while the paper has answer scripts: their marks were given against this key. */
   unlockKey(paperId: string): Promise<void>;
 }
 
@@ -446,15 +571,111 @@ export interface CertificatesApi {
   template(kind: CertificateKind): Promise<Response | null>;
 }
 
+// ---- Exam & Evals: answer scripts and marks ------------------------------------------------
+
+/** A student of the class on a paper's register, with their script if one was uploaded. */
+export type ScriptRow = { id: string | null; student_id: string; student: string; admission_no: string; section: string;
+  status: EvalStatus | null; score: number | null; final_score: number | null;
+  /** F-12: the phone's id for a queued script, and whether it is being marked now (pending and claimed recently). */
+  ref?: string | null; marking?: boolean };
+/** One question of a script: its marks, what the evaluator suggested, and the mark the teacher gave (null until confirmed). */
+export type ScriptMark = { question_id: string; number: string; section: string | null; choice_group: string | null; marks: number;
+  suggested: number | null; mark: number | null; comment: string };
+export type Script = {
+  id: string; paper_id: string; exam: string; subject: string; class_name: string; student: string; admission_no: string; section: string;
+  status: EvalStatus; max_marks: number; pages: { n: number; mime: string }[]; provider: string | null; error: string | null; evaluated_at: string | null;
+  feedback: string; confidence: string; extracted_text: string; marks: ScriptMark[]; score: number | null; final_score: number | null;
+  note: string | null; confirmed_by: string | null; confirmed_at: string | null; created_by: string; created_at: string;
+};
+
+/**
+ * F-14: what a student and parent get once a teacher confirms a script: each question's mark and, where marks were
+ * lost, what was missed (the evaluator's comment the teacher saw when confirming); the overall feedback and the note.
+ */
+export type FeedbackSlip = { id: string; exam: string; subject: string; class_name: string; max_marks: number; total: number; confirmed_at: string | null;
+  student: { name: string; admission_no: string; section: string; roll_no: string | null };
+  lines: { number: string; marks: number | null; out_of: number; choice_group: string | null; missed: string | null }[];
+  feedback: string; note: string | null;
+  school: { name: string; address: string | null; town: string | null; logo_key: string | null }; print_language: PrintLanguage };
+export interface ScriptsApi {
+  /** The class's students on a locked paper, in the sections this person may see; `edit` when they may mark one of them. */
+  register(paperId: string, section?: string): Promise<{ edit: boolean; paper: PaperRow & { exam: string }; sections: Choice[]; section: string | null;
+    rows: (ScriptRow & { mine: boolean })[] }>;
+  /** Stores the pages in order and asks the evaluator; returns the script's id whatever the evaluator answered. Replaces an unconfirmed script. */
+  upload(paperId: string, studentId: string, files: Upload[], o?: { mark?: boolean; ref?: string }): Promise<{ id: string }>;
+  /** F-14: a confirmed script's feedback slip; staff in their sections, a parent for their own child only. */
+  slip(id: string): Promise<FeedbackSlip>;
+  /** F-14: the confirmed slips of a paper (or one section), in roll order: the class print. */
+  slips(paperId: string, section?: string): Promise<FeedbackSlip[]>;
+  /** F-14: a parent's children's slips, newest first. */
+  mySlips(): Promise<{ id: string; student: string; exam: string; subject: string; final_score: number; max_marks: number; confirmed_at: string }[]>;
+  /** F-12: marks a queued (pending) script once, whoever asks first; reports its state either way. */
+  mark(id: string): Promise<{ id: string; status: EvalStatus; score: number | null }>;
+  get(id: string): Promise<{ edit: boolean; script: Script }>;
+  retry(id: string): Promise<void>;
+  /** Fields m_<question id> (one per question, halves allowed) and note. The total is worked out in core. */
+  confirm(id: string, f: Form): Promise<void>;
+  reopen(id: string): Promise<void>;
+  /** Deletes an unconfirmed script and its pages. */
+  remove(id: string): Promise<{ paperId: string }>;
+  page(id: string, n: number): Promise<Response>;
+}
+
+// ---- Sign-in with mobile and PIN (F-01) ----------------------------------------------------
+
+/** A parent on the office's sign-in slips page. `issued_at`: when a slip was last printed; `chosen_at`: when they chose their own PIN. */
+export type SlipParent = { guardian_id: string; name: string; mobile: string; children: string; email: string | null; issued_at: string | null; chosen_at: string | null };
+/** A staff member on the office's PIN slips list (F-02): only staff who already sign in and have a mobile. */
+export type SlipStaff = { staff_id: string; name: string; designation: string | null; mobile: string; email: string | null; issued_at: string | null; chosen_at: string | null };
+/** Whether someone signs in with a PIN: when their slip was printed, and when they chose their own. */
+export type PinState = { mobile: string; issued_at: string; chosen_at: string | null };
+/** One printed slip. The PIN exists only here, for the few minutes the print page is open. `staff`: the designation on a staff slip. */
+export type Slip = { name: string; mobile: string; pin: string; children: string[]; staff?: string };
+
+/** A parent a WhatsApp button goes to (F-04): first linked first. */
+/** `sent` (F-10, when asked for): this parent's latest message of that kind for that day, and who opened it; null: not yet. */
+export type ParentContact = { id: string; name: string; mobile: string; relation: string; sent?: { at: string; by: string | null } | null };
+export interface WhatsAppApi {
+  /** Each student's parents, for the buttons on receipts, the dues list and the register. Staff only. */
+  parents(studentIds: string[], sent?: { kind: "absence"; date: string }): Promise<Record<string, ParentContact[]>>;
+  /**
+   * Checks the sender may send it, writes the message from the records in the parent's language, audits it, and
+   * returns the wa.me address. Fields: kind (receipt, reminder, absence, notice), id (payment, student or notice),
+   * to (the guardian, all but notice), date (absence).
+   */
+  send(f: Form): Promise<{ url: string }>;
+}
+
+export interface PinsApi {
+  /** Parents of a section, for the office (student records, edit and above). */
+  parents(section?: string): Promise<{ sections: Choice[]; section: string | null; parents: SlipParent[] }>;
+  /**
+   * A new PIN for each guardian; one without a sign-in gets one, from their mobile. Earlier PINs stop working and
+   * their sessions end. The slips are kept sealed for 15 minutes under the returned batch, to print.
+   */
+  print(guardianIds: string[]): Promise<{ batch: string }>;
+  /** Staff who sign in and have a mobile, for the office (staff records, edit and above). */
+  staff(): Promise<SlipStaff[]>;
+  /** A new PIN for each staff member, as `print`; only for staff who already sign in, on their own mobile. */
+  printStaff(staffIds: string[]): Promise<{ batch: string }>;
+  /** null once the batch has expired, or for another school's batch. */
+  slips(batch: string): Promise<{ school: string; portal: string; logo: boolean; printedBy: string; slips: Slip[] } | null>;
+  /** The signed-in person chooses their own PIN. Fields: current, pin, pin2. */
+  change(f: Form): Promise<void>;
+}
+
 /** Homework (Standard): what one section's subject teacher has set, due on a day. */
-export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number };
+/** `photo` (F-18): a photo of the board comes with it. */
+export type HomeworkRow = { id: string; due_on: string; body: string; set_by: string; at: string; section: string; subject: string; mine: number; photo: number };
 
 export interface HomeworkApi {
   /** `choices` are the section-and-subject pairs this person may set, as [value, label]. */
   list(): Promise<{ canSet: boolean; rows: HomeworkRow[]; choices: [string, string][] }>;
   /** Fields: pair ("sectionId:subjectId"), due_on, body. Throws AppError 403 for a subject this person does not teach. */
-  post(f: Form): Promise<void>;
+  post(f: Form, photo?: Upload | null): Promise<void>;
   remove(id: string): Promise<void>;
+  /** F-18: the homework's photo of the board, for whoever may read that homework. */
+  photo(id: string): Promise<Response>;
 }
 
 /** Leave (Standard): a staff member's own, or a student's, with where it stands. */
@@ -620,11 +841,20 @@ export type MarkRow = { student_id: string; name: string; admission_no: string; 
 export type ReportSummary = { sat: number; got: number; outOf: number; percent: number; passed: boolean; absent: number };
 export type ReportCard = {
   exam: { name: string; starts_on: string; ends_on: string };
-  student: { name: string; admission_no: string; section: string | null };
+  student: { name: string; admission_no: string; section: string | null; roll_no?: string | null };
   school: { name: string; address: string | null; town: string | null; logo_key: string | null };
   lines: { subject: string; marks: number | null; absent: boolean; max: number }[];
   summary: ReportSummary;
+  /** F-07: marked days and days present (or late) over the exam's year up to its last day; the class teacher's remark; the print language. */
+  attendance?: { days: number; present: number } | null; remark?: string | null; print_language?: PrintLanguage;
 };
+/** One cell of the marks grid (F-07): `ai` when it came from a confirmed answer script. */
+export type GridCell = { marks: number | null; absent: boolean; ai: boolean };
+export type MarksGrid = { exams: Choice[]; exam: string | null; sections: Choice[]; section: string | null;
+  /** `edit`: this person may mark that subject in this section. */
+  papers: { id: string; subject: string; max: number; edit: boolean }[];
+  rows: { id: string; name: string; roll_no: string | null; admission_no: string; cells: GridCell[] }[];
+  remarks: Record<string, string>; canRemark: boolean };
 
 export interface MarksApi {
   /** Staff only: the sheet for one paper and section. `canEnter` is false for a subject this person does not teach. */
@@ -638,6 +868,12 @@ export interface MarksApi {
   cards(examId?: string): Promise<{ exams: Choice[]; exam: string | null; students: { id: string; name: string; admission_no: string; section: string | null }[] }>;
   /** null when the student has no marks in that exam. */
   card(examId: string, studentId: string): Promise<ReportCard | null>;
+  /** F-07: one section's students down, the exam's subjects across. */
+  grid(q: { exam?: string; section?: string }): Promise<MarksGrid>;
+  /** Fields: exam, section, m_<paper>_<student>, a_<paper>_<student>, r_<student>. A blank cell is not entered; a bad one refuses all. */
+  saveGrid(f: Form): Promise<void>;
+  /** Every card of a section, for printing the class in one go. */
+  classCards(examId: string, sectionId: string): Promise<ReportCard[]>;
 }
 
 /** Hostel (add-on): a room, with how many places are free. */

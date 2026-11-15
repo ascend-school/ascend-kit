@@ -56,6 +56,8 @@ export const MODULE_READY: Record<string, "ready" | "partly"> = {
   attendance: "ready", fees_basic: "ready", communication: "ready", timetable_manual: "ready", id_cards: "ready", parent_app_basic: "ready",
   certificates: "ready", homework: "ready", leave: "ready", admissions: "ready", compliance: "ready", fees_advanced: "ready", owner_dashboard: "ready", library: "ready", inventory: "ready", transport: "ready", group_dashboard: "ready", hostel: "ready", income_expenses: "ready", payroll: "ready",
   exams: "ready",
+  // Marks entry, the marks grid and printed progress cards (F-07), sold from Standard.
+  marks: "ready",
   // Both are live, gated by the plan features timetable.clash_detection and
   // timetable.auto_generate rather than by their own module key.
   timetable_advanced: "ready", timetable_auto: "ready",
