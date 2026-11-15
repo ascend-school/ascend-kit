@@ -1,10 +1,9 @@
 # public
 
-The fonts, favicon and social images every surface serves at `/fonts/...`, `/favicon.ico`
-and so on. They live here, not in an app, because `base.css` in this kit is what names
-them — `font-src 'self'` in the security policy means each Worker must serve them from
-its own address. Every Worker points its `assets.directory` at this folder:
+The canonical fonts, favicon and social images. `base.css` in this kit names them at
+`/fonts/...`, and the security policy is `font-src 'self'` — so every Worker that renders
+a page serves its own copy from its own address.
 
-```jsonc
-"assets": { "directory": "./node_modules/@ascend/kit/public" }
-```
+Each serving repo keeps a copy at its own `public/` and points `assets.directory` there.
+Change a file here and copy it to: ascend-gateway, ascend-marketing, ascend-admin,
+ascend-tenant-portal, ascend-school-portal, ascend-school-website.
