@@ -44,6 +44,8 @@ export interface OpsSchools {
   subscription(id: string): Promise<OpsSchoolHead & { sub: OpsSubscription | null; billLines: string[] | null; billCycle: "yearly" | "monthly" | null; plans: OpsPlan[]; requests: OpsPlanRequest[]; invoices: OpsInvoiceRow[]; nextPeriodStart: string }>;
   owners(id: string): Promise<OpsSchoolHead & { owners: { id: string; name: string; email: string; role: string }[]; welcome: OpsWelcome }>;
   domains(id: string): Promise<OpsSchoolHead & { domains: DomainView[]; fallback: string }>;
+  /** Ticks or unticks an onboarding step; `live` also sets the school live (or back to onboarding). */
+  markStep(id: string, step: string, done: boolean): Promise<{ schoolId: string }>;
   /** Returns the school page to go back to and the flash (sent, nolink or failed). */
   resendWelcome(tenantId: string): Promise<{ schoolId: string; welcome: "sent" | "nolink" | "failed" }>;
   changeEmail(schoolId: string, personId: string, email: string): Promise<{ schoolId: string; rearmed: boolean }>;

@@ -423,8 +423,10 @@ export interface NoticesApi {
 
 export interface PeopleApi {
   list(): Promise<{ allowed: SchoolRole[]; people: { user_id: string | null; staff_id: string | null; name: string; designation: string | null; email: string | null }[];
-    roles: { user_id: string; role: SchoolRole }[] }>;
+    roles: { user_id: string; role: SchoolRole; wing?: string | null }[]; wings?: string[] }>;
   setRoles(userId: string, wanted: string[]): Promise<void>;
+  /** The wing a headmaster heads (one of `wings`), or null for the whole school. */
+  setWing(userId: string, wing: string | null): Promise<void>;
 }
 
 export type PromoteSection = { id: string; class_id: string; label: string; name: string; sort: number; n: number };
