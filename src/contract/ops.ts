@@ -20,7 +20,8 @@ export type OpsSchool = {
   shard: string; status: "onboarding" | "live" | "suspended"; host_attached: number; host_error: string | null;
   hosts_attached_at: string | null; hosts_ready_at: string | null; welcome_pending: number;
 };
-export type OpsSchoolListRow = OpsSchool & { tenant_name: string; tenant_status: string; plan_key: string | null; welcome: string | null; created_at: string };
+/** `term_end`: the subscription's end, for the renewals pipeline (null without a plan). */
+export type OpsSchoolListRow = OpsSchool & { tenant_name: string; tenant_status: string; plan_key: string | null; term_end?: string | null; welcome: string | null; created_at: string };
 export type OpsLead = { id: string; name: string; school_name: string; town: string; mobile: string; student_strength: number | null; status: string; created_at: string };
 export type OpsPlanRequest = { id: string; school_id: string; kind: "addon" | "plan"; item: string; note: string | null; status: string; requested_by: string; created_at: string; decided_at: string | null; school_name: string; item_name: string };
 export type OpsInvoiceRow = Invoice & { school_name: string; paid_paise: number };

@@ -109,12 +109,19 @@ export type HomeData = {
   /** The sections this person's roles open, in page order. */
   sections: HomeSection[];
   counts: HomeCounts;
-  academics?: { wing: boolean; rows: { id: string; cls: string; sec: string; teacher: string | null; n: number }[] };
+  /** `marked`: students with today's attendance saved, so a principal or headmaster sees which registers are still open. */
+  academics?: { wing: boolean; rows: { id: string; cls: string; sec: string; teacher: string | null; n: number; marked?: number }[] };
   /** `today`: today's receipts by mode, as the day book counts them (F-06). */
   dues?: { sum: { owed: number | null; students: number; month: number | null } | null; rows: ({ student_id: string; name: string; admission_no: string; cls: string | null; due_on: string | null } & Money)[]; today: ModeTotals;
     /** F-09: UPI payments waiting for the accountant. */
     toConfirm: number };
-  myClasses?: { mine: { id: string; cls: string; sec: string; n: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[] };
+  /**
+   * A teacher's day. `mine[].marked`: students with today's attendance saved. `today`: their periods today from the live
+   * timetable, period order, each with `homework` (homework they set today for that section and subject). `closed`: why
+   * today is not a school day, or null.
+   */
+  myClasses?: { mine: { id: string; cls: string; sec: string; n: number; marked?: number }[]; subjects: { section_id: string; cls: string; sec: string; subject: string }[];
+    today?: { period: number; section_id: string; subject_id: string; cls: string; sec: string; subject: string; homework: number }[]; closed?: string | null };
   /**
    * F-08: one card per child. `month`: this month's marked days and those attended (present or late);
    * `receipt`: the newest paid receipt; `card`: the newest exam the child has marks in, with its percentage.

@@ -20,6 +20,7 @@ export const BASE_CSS = `
 @font-face{font-family:"Hind";src:url(/fonts/hind-600.woff2) format("woff2");font-weight:600 700;font-display:swap}
 @font-face{font-family:"Inter";src:url(/fonts/inter.woff2) format("woff2");font-weight:100 900;font-display:swap}
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{color-scheme:var(--scheme,light);-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4{font-family:var(--font-display);font-weight:var(--display-weight);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
@@ -168,7 +169,7 @@ input:disabled,select:disabled,textarea:disabled{opacity:.6;cursor:not-allowed}
 fieldset{border:0;padding:0;margin:0;min-width:0}
 .checks{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem}
 .checks label{display:inline-flex;gap:.45rem;align-items:center;font-weight:500}
-.btn,button{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font:600 .95rem/1 var(--font-body);min-height:2.75rem;padding:.7rem 1.15rem;border-radius:var(--radius);border:1.5px solid var(--accent);background:var(--accent-image),var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color .15s ease-out,transform .15s ease-out}
+.btn,button{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font:600 .95rem/1 var(--font-body);min-height:2.75rem;padding:.7rem 1.15rem;border-radius:var(--radius);border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color .15s ease-out,transform .15s ease-out}
 .btn:hover,button:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .btn:active,button:active{transform:translateY(1px)}
 .btn.quiet,button.quiet{background:transparent;color:var(--accent)}
@@ -291,7 +292,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 .hero .cluster{margin-top:1.75rem}
 .hero .btn{background:var(--rail-active-bg);color:var(--rail-active-ink);border-color:var(--rail-active-bg)}
 .hero .btn.quiet{background:transparent;color:var(--rail-ink);border-color:color-mix(in srgb,var(--rail-ink) 40%,transparent)}
-.demo-screen{background:var(--bg);border-radius:var(--radius-lg);box-shadow:0 30px 60px -30px rgb(0 0 0 / .55);overflow:hidden;color:var(--ink);transform:rotate(-1.2deg)}
+.demo-screen{background:var(--bg);border-radius:var(--radius-lg);box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden;color:var(--ink)}
 .demo-screen .bar{display:flex;gap:.4rem;padding:.6rem .8rem;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:.78rem;color:var(--ink-2);align-items:center}
 .demo-screen .bar i{width:.6rem;height:.6rem;border-radius:50%;background:var(--line)}
 .demo-screen .inner{padding:1rem;display:grid;gap:.9rem}
@@ -417,6 +418,73 @@ form.wa{display:inline-flex;margin:0}form.wa button{white-space:nowrap}
 .plan ul{margin:0;padding-left:1.1rem;display:grid;gap:.3rem}
 .site-foot{padding:2rem clamp(1rem,4vw,3rem);background:var(--rail-image),var(--rail-bg);color:var(--rail-muted);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;font-size:.9rem}
 .site-foot a{color:var(--rail-ink)}
+
+/* Phones: a bottom bar with the person's three or four daily places, in thumb reach. The rail's menu still holds everything. */
+.dock{display:none}
+@media (max-width:860px){
+  .dock{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:0 0 env(safe-area-inset-bottom)}
+  .dock a{display:grid;justify-items:center;align-content:center;gap:.15rem;min-height:3.5rem;padding:.35rem .25rem;color:var(--ink-2);text-decoration:none;font-size:.78rem;font-weight:600;line-height:1.15;text-align:center;overflow-wrap:anywhere}
+  .dock a svg.i{width:1.4rem;height:1.4rem}
+  .dock a[aria-current=page]{color:var(--accent)}
+  .app:has(.dock) .work{padding-bottom:5.5rem}
+}
+@media print{.dock,.outbox{display:none!important}}
+
+/* Work waiting on this phone to send (attendance saved offline). */
+.outbox{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.7rem 1rem;border-radius:var(--radius);border:1px solid color-mix(in srgb,var(--sent) 45%,transparent);background:color-mix(in srgb,var(--sent) 9%,var(--surface))}
+.outbox[hidden]{display:none}
+
+/* A list of things to do now: one line each, the action at the end, in reach. */
+.todo{list-style:none;margin:0;padding:0}
+.todo li{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;justify-content:space-between;padding:.8rem 1.15rem;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.todo li:first-child{border-top:0}
+.todo .what{display:grid;gap:.1rem;min-width:0;flex:1 1 12rem}
+.todo .what strong{font-size:1.05rem}
+.todo .what span{font-size:.88rem;color:var(--ink-2)}
+.todo .when{font:var(--display-weight) 1.05rem/1 var(--font-display);color:var(--ink-2);min-width:2.6rem}
+.todo .acts{display:flex;flex-wrap:wrap;gap:.4rem}
+.todo li.now{background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+@media (max-width:640px){.todo .acts{flex-basis:100%}.todo .acts .btn{flex:1 1 0;min-height:2.75rem}}
+
+/* The register as a roll call: everyone starts present, a tap on a name marks them absent. */
+.roll{list-style:none;margin:0;padding:0}
+.roll>li{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);padding:.35rem .75rem .35rem 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .75rem;border-left:4px solid transparent}
+.roll>li:first-child{border-top:0}
+.roll .who{flex:1 1 10rem;min-width:0;display:flex;align-items:center;gap:.6rem;min-height:2.75rem;background:none;border:0;padding:0;color:var(--ink);font:500 1.02rem/1.25 var(--font-body);text-align:left;cursor:pointer;white-space:normal;justify-content:flex-start}
+.roll .who:hover{background:none}
+.roll .no{min-width:2rem;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:.9rem}
+.roll .state{font-weight:600;font-size:.9rem;color:var(--paid)}
+.roll .checks{gap:.35rem}
+.roll .checks label{min-height:2.75rem;padding:0 .7rem;border:1.5px solid var(--line);border-radius:var(--radius);font-size:.9rem}
+.roll .checks label:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.roll>li:has(input[value=absent]:checked){border-left-color:var(--due);background:color-mix(in srgb,var(--due) 6%,var(--surface))}
+.roll>li:has(input[value=absent]:checked) .state{color:var(--due)}
+.roll>li:has(input[value=late]:checked) .state,.roll>li:has(input[value=leave]:checked) .state{color:var(--sent)}
+.roll.js .checks{display:none}
+.roll.js>li.more .checks{display:flex;flex-basis:100%;padding:0 0 .4rem 2.6rem}
+.roll .more-btn{min-height:2.75rem;min-width:2.75rem;padding:0 .6rem;border-color:transparent;color:var(--ink-2)}
+.savebar .tally>span{white-space:nowrap}
+/* The save bar stays in reach at the foot of the screen while the register scrolls. */
+.savebar{position:sticky;bottom:0;z-index:30;display:flex;flex-wrap:nowrap;gap:.6rem 1rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow)}
+.savebar .tally{font-weight:600;display:flex;flex-wrap:wrap;gap:0 .35rem}
+.savebar .tally .due{color:var(--due)}
+.savebar button[type=submit],.savebar .go{min-height:3rem;padding-inline:1.5rem}
+@media (max-width:860px){.app:has(.dock) .savebar{bottom:calc(3.6rem + env(safe-area-inset-bottom))}.savebar{border-radius:var(--radius)}.savebar .go{flex:0 1 auto}}
+
+/* Ascend's own home lists: what needs a hand first. */
+.attn .mark{flex:none}
+/* Marketing, redesigned around the visitor's questions. */
+.fit{list-style:none;margin:0;padding:0;display:grid;gap:1rem 2rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr))}
+.fit li{display:grid;gap:.25rem;padding-left:1rem;border-left:3px solid var(--accent)}
+.fit strong{font:var(--display-weight) 1.08rem/1.3 var(--font-display)}.fit span{color:var(--ink-2)}
+.easy{display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr));align-items:start}
+.easy article{display:grid;gap:.45rem;align-content:start}.easy h3{font-size:1.15rem}.easy p{color:var(--ink-2)}.easy .demo-screen{margin-top:.5rem}
+.price-example{font-size:1.15rem;color:var(--ink)!important}
+.site-head nav{align-items:center}.site-head nav .btn{background:var(--rail-active-bg);color:var(--rail-active-ink);border-color:var(--rail-active-bg)}
+.sticky-cta{display:none}
+@media (max-width:640px){.site-head{flex-wrap:wrap;gap:.75rem}.site-head nav{gap:.9rem}.site-head nav .wide,.site-head nav .btn{display:none}
+  .sticky-cta{display:flex;gap:.5rem;position:sticky;bottom:0;z-index:40;padding:.6rem 1rem calc(.6rem + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line)}
+  .sticky-cta .btn{flex:1 1 0;min-height:3rem}}
 /* Older screen markup, mapped onto the same tokens until each screen is recomposed. */
 .work>h2,.work>h3,.panel h3{margin-top:.4rem}
 .work>form:not(.stack):not(.find),.work>details{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1.15rem;display:grid;gap:1rem;box-shadow:var(--shadow)}

@@ -82,7 +82,31 @@ if(t.dataset.open){e.preventDefault();document.getElementById(t.dataset.open)?.s
 if(t.hasAttribute("data-close")){e.preventDefault();const d=t.closest("dialog");if(d)shut(d);return}
 if(t.dataset.ok){delete t.dataset.ok;return}
 e.preventDefault();const d=document.getElementById("confirm-dialog");d.querySelector("p").textContent=t.dataset.confirm;
-d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok"){t.dataset.ok="1";t.click()}};d.showModal()});`;
+d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok"){t.dataset.ok="1";t.click()}};d.showModal()});
+const roll=document.querySelector(".roll");if(roll){roll.classList.add("js");const tally=()=>{const n={present:0,absent:0,late:0,leave:0};
+roll.querySelectorAll("li").forEach(li=>{const c=li.querySelector("input:checked");if(!c)return;n[c.value]++;const s=li.querySelector(".state");if(s)s.textContent=c.parentElement.textContent.trim()});
+document.querySelectorAll("[data-k]").forEach(x=>{x.textContent=n[x.dataset.k]??0})};
+roll.addEventListener("click",e=>{const w=e.target.closest(".who"),m=e.target.closest(".more-btn");if(!w&&!m)return;e.preventDefault();const li=e.target.closest("li");
+if(m){li.classList.toggle("more");m.setAttribute("aria-expanded",li.classList.contains("more"));return}
+const a=li.querySelector("input[value=absent]");(a.checked?li.querySelector("input[value=present]"):a).checked=true;tally()});
+roll.addEventListener("change",tally);document.querySelectorAll("[data-all-present]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();roll.querySelectorAll("input[value=present]").forEach(i=>i.checked=true);tally()}));tally()}
+const OB="ascend-outbox",OF="ascend-outbox-failed",get=k=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{return[]}},put=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a))}catch{}};
+const show=()=>{const a=get(OB).filter(x=>x.who===who),f=get(OF).filter(x=>x.who===who),b=document.getElementById("outbox"),x=document.getElementById("outbox-failed");
+if(b){b.hidden=!a.length;b.querySelectorAll("[data-n]").forEach(s=>s.textContent=a.length);const l=b.querySelector("[data-list]");if(l)l.textContent=a.map(i=>i.label).join(", ")}
+if(x){x.hidden=!f.length;const l=x.querySelector("a");if(l&&f[0]){l.href=f[0].page;l.textContent=f[0].label}}};
+const post=it=>fetch(it.action,{method:"POST",body:new URLSearchParams(it.body),credentials:"same-origin"});
+// shortcut: the outbox is per person by the shell's name; two people of the same name on one phone share it. Upgrade to a user id in the page if that happens.
+const who=(document.querySelector(".rail-foot strong")||{}).textContent||"",landed=(r,it)=>r.ok&&new URL(r.url).pathname===new URL(it.action,location.href).pathname;
+let busy=false;const flush=async()=>{if(busy||!navigator.onLine||!who)return;busy=true;for(const it of get(OB).filter(x=>x.who===who)){let r;try{r=await post(it)}catch{break}
+if(landed(r,it)||(r.status>=400&&r.status<500)){put(OB,get(OB).filter(x=>x.key!==it.key));if(!r.ok)put(OF,[...get(OF).filter(x=>x.key!==it.key),it])}else break}busy=false;show()};
+document.addEventListener("submit",async e=>{const f=e.target;if(!f.matches||!f.matches("form[data-offline]"))return;e.preventDefault();
+const it={key:f.action+"|"+(f.elements.date?f.elements.date.value:""),action:f.action,body:[...new FormData(f)].map(([k,v])=>[k,String(v)]),label:f.dataset.offline,page:location.pathname+location.search,at:Date.now(),who};
+const btn=f.querySelector("button:not([type=button])");if(btn)btn.disabled=true;put(OF,get(OF).filter(x=>x.key!==it.key));
+try{const r=await post(it);if(r.redirected&&r.ok&&!landed(r,it)){put(OB,[...get(OB).filter(x=>x.key!==it.key),it]);location.href=r.url;return}
+put(OB,get(OB).filter(x=>x.key!==it.key));if(r.redirected&&r.ok){location.href=r.url;return}document.open();document.write(await r.text());document.close()}
+catch{put(OB,[...get(OB).filter(x=>x.key!==it.key),it]);show();if(btn)btn.disabled=false;const m=document.getElementById("saved-offline");if(m){m.hidden=false;m.scrollIntoView({block:"center"})}}});
+document.addEventListener("click",e=>{if(e.target.closest("[data-flush]")){e.preventDefault();flush()}});
+addEventListener("online",flush);setInterval(flush,30000);show();flush();`;
 /** ui.js changes without base.css changing: its own token, so browsers fetch the new one. */
 const SCRIPT_VERSION = [...UI_SCRIPT].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261).toString(36);
 const confirmDialog = (t: T) => `<dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title"><form method="dialog" class="stack">
@@ -160,9 +184,14 @@ export function appShell(o: {
   refreshSeconds?: number;
   /** The page's language, and the switch between languages in the menu (F-03). */
   t?: T; languages?: LanguageSwitch;
+  /** Phones: the person's three or four daily places in a bar at the foot of the screen. */
+  dock?: NavItem[];
 }): string {
   const t = o.t ?? EN;
   const isOn = (href: string) => isOnPath(href, o.current);
+  const dockOn = o.dock?.filter((i) => isOn(i.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  const dock = o.dock?.length ? `<nav class="dock" aria-label="${esc(t("Quick links"))}">${o.dock.map((i) =>
+    `<a ${href(i.href)}${i.href === dockOn ? ' aria-current="page"' : ""}>${icon(i.icon)}<span>${esc(i.label)}</span></a>`).join("")}</nav>` : "";
   const nav = o.groups.filter((g) => g.items.length).map((g) => `<div><h2>${esc(g.title)}</h2>${g.items.map((i) =>
     `<a ${href(i.href)}${isOn(i.href) ? ' aria-current="page"' : ""}>${icon(i.icon)}<span>${esc(i.label)}</span></a>`).join("")}</div>`).join("");
   const body = `<div class="app"><aside class="rail" aria-label="${esc(o.product)}">
@@ -174,9 +203,13 @@ ${o.org ? `<div class="rail-org">${o.org.name ? `<strong>${esc(o.org.name)}</str
 ${o.languages ? languageSwitch(o.languages, t.lang) : ""}
 ${o.signoutAction ? `<form method="post" action="${esc(o.signoutAction)}"><button>${icon("logout")} ${esc(t("Sign out"))}</button></form>` : ""}
 ${o.school ? poweredBy(o.school.poweredBy, t) : ""}</div>
-</aside><main class="work" id="main">${o.find ? `<form class="find" method="get" action="${esc(o.find.action)}" role="search"><label class="sr" for="find">${esc(o.find.label)}</label>${icon("search")}<input id="find" name="${esc(o.find.name)}" type="search" placeholder="${esc(o.find.label)}" value="${esc(o.find.value ?? "")}" autocomplete="off"></form>` : ""}${o.local ? localNav(o.local, o.current, t) : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
+</aside>${dock}<main class="work" id="main">${outbox(t)}${o.find ? `<form class="find" method="get" action="${esc(o.find.action)}" role="search"><label class="sr" for="find">${esc(o.find.label)}</label>${icon("search")}<input id="find" name="${esc(o.find.name)}" type="search" placeholder="${esc(o.find.label)}" value="${esc(o.find.value ?? "")}" autocomplete="off"></form>` : ""}${o.local ? localNav(o.local, o.current, t) : ""}${flashHtml(o.flash)}${o.body}</main></div>`;
   return document({ title: `${o.title} · ${o.org?.name ?? o.product}`, body, t, head: o.refreshSeconds ? `<meta http-equiv="refresh" content="${o.refreshSeconds}">` : undefined });
 }
+
+/** Work saved on this phone while offline, and anything the school's server turned down when it was sent (UI_SCRIPT fills both). */
+const outbox = (t: T) => `<div id="outbox" class="outbox" role="status" hidden>${icon("upload")}<span>${esc(t("Saved on this phone, waiting for the internet:"))} <strong data-list></strong>. ${esc(t("It sends by itself when you are back online."))}</span><button class="quiet sm" data-flush>${esc(t("Send now"))}</button></div>
+<div id="outbox-failed" class="banner bad" role="alert" hidden>${icon("alert")}<div>${esc(t("Not saved when it was sent:"))} <a href="/"></a>. ${esc(t("Open it to see why and save again."))}</div></div>`;
 
 /** Sign-in and other doors: the organisation on one side, the form on the other. */
 export function authPage(o: { title: string; org: string; headline: string; lead: string; logoSrc?: string | null; body: string; flash?: Flash; poweredBy?: string; t?: T; languages?: LanguageSwitch }): string {
@@ -294,7 +327,7 @@ export function stops(items: Stop[]): string {
 
 // ---- Forms. ------------------------------------------------------------------------
 
-type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number; /** A file input that opens the phone's camera ("environment": the back one). */ capture?: string };
+type FieldOpts = { value?: string | number | null; type?: string; required?: boolean; id?: string; hint?: string; placeholder?: string; autocomplete?: string; min?: string; step?: string; max?: string; pattern?: string; inputmode?: string; accept?: string; multiple?: boolean; maxlength?: number; /** A file input that opens the phone's camera ("environment": the back one). */ capture?: string; /** Focus here when the page or its dialog opens. */ autofocus?: boolean };
 
 export function field(label: string, name: string, o: FieldOpts = {}): string {
   const id = o.id ?? `f-${name}`;
@@ -302,7 +335,7 @@ export function field(label: string, name: string, o: FieldOpts = {}): string {
     o.required ? " required" : "", o.placeholder ? ` placeholder="${esc(o.placeholder)}"` : "",
     o.autocomplete ? ` autocomplete="${esc(o.autocomplete)}"` : "", o.min ? ` min="${esc(o.min)}"` : "", o.step ? ` step="${esc(o.step)}"` : "", o.max ? ` max="${esc(o.max)}"` : "",
     o.pattern ? ` pattern="${esc(o.pattern)}"` : "", o.inputmode ? ` inputmode="${esc(o.inputmode)}"` : "",
-    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "", o.capture ? ` capture="${esc(o.capture)}"` : "",
+    o.accept ? ` accept="${esc(o.accept)}"` : "", o.multiple ? " multiple" : "", o.maxlength ? ` maxlength="${o.maxlength}"` : "", o.capture ? ` capture="${esc(o.capture)}"` : "", o.autofocus ? " autofocus" : "",
     o.hint ? ` aria-describedby="${esc(id)}-h"` : "",
   ].join("");
   return `<div class="field"><label for="${esc(id)}">${esc(label)}</label><input id="${esc(id)}" name="${esc(name)}" type="${esc(o.type ?? "text")}" value="${esc(o.value ?? "")}"${attrs}>${o.hint ? `<span class="hint" id="${esc(id)}-h">${esc(o.hint)}</span>` : ""}</div>`;
