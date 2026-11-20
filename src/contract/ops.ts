@@ -22,7 +22,7 @@ export type OpsSchool = {
 };
 /** `term_end`: the subscription's end, for the renewals pipeline (null without a plan). */
 export type OpsSchoolListRow = OpsSchool & { tenant_name: string; tenant_status: string; plan_key: string | null; term_end?: string | null; welcome: string | null; created_at: string };
-export type OpsLead = { id: string; name: string; school_name: string; town: string; mobile: string; student_strength: number | null; status: string; created_at: string };
+export type OpsLead = { id: string; name: string; school_name: string; town: string; mobile: string; student_strength: number | null; status: string; notes?: string | null; created_at: string };
 export type OpsPlanRequest = { id: string; school_id: string; kind: "addon" | "plan"; item: string; note: string | null; status: string; requested_by: string; created_at: string; decided_at: string | null; school_name: string; item_name: string };
 export type OpsInvoiceRow = Invoice & { school_name: string; paid_paise: number };
 export type OpsPlan = { key: string; name: string };
@@ -88,7 +88,10 @@ export interface OpsSession {
   /** The Overview's figures. Demo requests only for sales, unpaid invoices only for billing; empty otherwise. */
   /** `ai` (F-13): this month's AI evaluations across schools: count, failed, cost (paise; `priced` when EVAL_COST_PAISE is set), by school. */
   overview(): Promise<{ leads: OpsLead[]; schools: OpsSchoolListRow[]; requests: OpsPlanRequest[]; unpaid: OpsInvoiceRow[]; ai: OpsAiUsage }>;
-  leads(): Promise<OpsLead[]>;
+  /** Open demo requests, newest first; `closed` lists signed and lost ones instead. */
+  leads(closed?: boolean): Promise<OpsLead[]>;
+  /** Moves a lead along (new, contacted, demo_booked, demo_done, lost) and replaces its note. Signed is set only by creating a tenant. */
+  setLeadStatus(id: string, status: string, note: string): Promise<void>;
   readonly schools: OpsSchools;
   readonly invoices: OpsInvoices;
   readonly settings: OpsSettings;
